@@ -111,7 +111,6 @@ export function buildApp({ dbPath, publicDir, publicUrl, mailer, allowedEmails =
       return accountUser(account)
     })
 
-
     api.post('/sync/:app', { schema: syncSchema }, async (request, reply) => {
       const { login } = request.user
       const { user, since, changes } = request.body
@@ -121,6 +120,13 @@ export function buildApp({ dbPath, publicDir, publicUrl, mailer, allowedEmails =
       return { user: login, ...db.sync(login, request.params.app, since, changes) }
     })
   }, { prefix: '/api', ...quiet })
+
+  // Même adresse, deux pages : l'app pour une session ouverte (et l'app installée, dont start_url est /), la page
+  // de présentation (landing.html) pour les visiteurs et les moteurs de recherche.
+  app.get('/', quiet, (request, reply) => reply
+    .header('cache-control', 'no-cache')
+    .header('vary', 'Cookie')
+    .sendFile(sessionUser(request, db) ? 'index.html' : 'landing.html'))
 
   app.register(fastifyStatic, {
     ...quiet,

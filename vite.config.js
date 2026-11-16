@@ -1,11 +1,21 @@
 import { defineConfig } from 'vite'
+import { fileURLToPath } from 'node:url'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import { VitePWA } from 'vite-plugin-pwa'
 
 // App servie a la racine de yidiano.com par server/ ; le manifeste PWA est genere ici.
+// landing.html : page de presentation servie a la place de l'app aux visiteurs sans session (server/app.js).
 export default defineConfig({
   base: '/',
+  build: {
+    rollupOptions: {
+      input: {
+        app: fileURLToPath(new URL('./index.html', import.meta.url)),
+        landing: fileURLToPath(new URL('./landing.html', import.meta.url)),
+      },
+    },
+  },
   plugins: [
     react(),
     tailwindcss(),

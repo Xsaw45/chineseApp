@@ -157,6 +157,18 @@ test('deconnexion : la session ne vaut plus', async () => {
   assert.equal((await app.inject({ url: '/api/me', headers: { cookie } })).statusCode, 401)
 })
 
+test('/ : la page de presentation sans session, l app avec une session', async () => {
+  writeFileSync(join(dir, 'index.html'), 'app')
+  writeFileSync(join(dir, 'landing.html'), 'landing')
+  const visitor = await app.inject({ url: '/' })
+  assert.equal(visitor.statusCode, 200)
+  assert.equal(visitor.body, 'landing')
+  assert.equal(visitor.headers.vary, 'Cookie')
+
+  const cookie = await signIn('a@x.fr')
+  assert.equal((await app.inject({ url: '/', headers: { cookie } })).body, 'app')
+})
+
 test('la page de connexion est servie sans session', async () => {
   mkdirSync(join(dir, 'login'))
   writeFileSync(join(dir, 'login', 'index.html'), '<!doctype html>')

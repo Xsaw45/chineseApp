@@ -1,0 +1,100 @@
+@import "tailwindcss" source(none);
+@source "../../landing.html";
+@source "./";
+@import "@fontsource-variable/source-sans-3";
+
+/*
+ * Page de présentation de Yidiano. Direction : le cahier d'écriture chinois, patient, précis, un peu chaleureux.
+ * Papier chaud, encre presque noire et une seule couleur : le rouge des sceaux (印章), comme dans l'app.
+ * Les captures de l'app (thème sombre) sont posées sur le papier comme des téléphones sur un bureau.
+ */
+@theme {
+  --font-sans: 'Source Sans 3 Variable', 'PingFang SC', 'Source Han Sans SC', 'Noto Sans SC', 'Microsoft YaHei', system-ui, sans-serif;
+
+  --color-paper: #f7f4ee;
+  --color-sheet: #fdfbf7;
+  --color-wash: #efe9df;
+  --color-grid: #e2d9ca;
+  --color-ink: #1f1b16;
+  --color-ink-2: #5e554a;
+  --color-ink-3: #7b7266;
+  --color-rule: rgb(31 27 22 / 0.1);
+  --color-seal: #dc2626;
+  --color-seal-hover: #b91c1c;
+  --color-seal-ink: #b91c1c;
+  --color-night: #141415;
+  --color-night-card: #19191b;
+  --color-night-raised: #232325;
+  --color-night-fg: #ededed;
+  --color-night-fg-2: #a1a1a6;
+  --color-good: #4cc38a;
+
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@layer base {
+  html {
+    color-scheme: light;
+    -webkit-text-size-adjust: 100%;
+    -webkit-tap-highlight-color: transparent;
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply m-0 bg-paper font-sans text-ink antialiased;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-seal);
+    outline-offset: 2px;
+  }
+
+  ::selection {
+    background: rgb(220 38 38 / 0.18);
+  }
+
+  summary {
+    cursor: pointer;
+    list-style: none;
+  }
+
+  summary::-webkit-details-marker {
+    display: none;
+  }
+}
+
+/* Téléphone : cadre d'encre autour d'une vraie capture de l'app */
+.phone {
+  border-radius: 40px;
+  padding: 8px;
+  background: var(--color-ink);
+  box-shadow: 0 12px 32px rgb(31 27 22 / 0.14);
+}
+
+.phone img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 32px;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .rise {
+    animation: rise 480ms var(--ease-out) both;
+  }
+
+  .rise-2 {
+    animation-delay: 60ms;
+  }
+
+  .rise-3 {
+    animation-delay: 120ms;
+  }
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}

@@ -8,6 +8,7 @@ Feuille de route : [ROADMAP.md](ROADMAP.md) ; vente : [COMMERCIALISATION.md](COM
 |---|---|
 | `src/` | app React 19 + Vite + Tailwind 4, servie à la racine (`base: '/'`) |
 | `public/login/` | page de connexion (lien ou code à 6 chiffres) |
+| `landing.html`, `src/landing/` | page de présentation, servie à `/` aux visiteurs sans session (l'app pour une session ouverte) ; captures dans `public/landing/` |
 | `server/` | Node 24 + Fastify : fichiers statiques, connexion par e-mail, synchronisation, SQLite (`node:sqlite`) |
 | `scripts/` | construction des données (vocabulaire, audio, caractères) |
 
