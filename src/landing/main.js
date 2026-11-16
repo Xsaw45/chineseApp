@@ -53,3 +53,9 @@ async function writeLoop() {
 }
 
 if (!still && writers.length) writeLoop()
+
+// Barre du haut : un filet la sépare du contenu dès que la page a défilé.
+const header = document.querySelector('[data-header]')
+const markScrolled = () => header.toggleAttribute('data-scrolled', window.scrollY > 4)
+window.addEventListener('scroll', markScrolled, { passive: true })
+markScrolled()

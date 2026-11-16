@@ -38,6 +38,7 @@
     -webkit-text-size-adjust: 100%;
     -webkit-tap-highlight-color: transparent;
     scroll-behavior: smooth;
+    scroll-padding-top: 4rem; /* les ancres ne passent pas sous la barre fixe */
   }
 
   body {

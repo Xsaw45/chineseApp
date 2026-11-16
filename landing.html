@@ -20,7 +20,9 @@
     <script type="module" src="/src/landing/main.js"></script>
   </head>
   <body>
-    <header class="mx-auto flex h-16 max-w-6xl items-center justify-between px-6 lg:px-8">
+    <!-- Barre fixe en haut au défilement ; le filet apparaît dès qu'on a quitté le haut de la page (src/landing/main.js) -->
+    <header data-header class="sticky top-0 z-50 border-b border-transparent bg-paper transition-colors duration-200 data-[scrolled]:border-rule">
+    <div class="mx-auto flex h-16 max-w-6xl items-center justify-between px-6 lg:px-8">
       <a href="/" class="flex items-center gap-3" aria-label="Yidiano, accueil">
         <span class="hanzi flex size-8 items-center justify-center rounded-md bg-seal text-lg leading-none text-white" aria-hidden="true">点</span>
         <span class="text-lg font-medium">Yidiano</span>
@@ -35,6 +37,7 @@
         <a href="/login/" class="hidden text-[15px] text-ink-2 transition-colors duration-150 hover:text-ink sm:inline">Se connecter</a>
         <a href="/login/" class="inline-flex h-9 items-center rounded-lg bg-ink px-4 text-[15px] font-medium text-sheet transition-colors duration-150 hover:bg-ink/85">Commencer</a>
       </div>
+    </div>
     </header>
 
     <main>
@@ -239,7 +242,7 @@
           </div>
 
           <div class="lg:pt-24">
-            <div class="phone mx-auto max-w-[280px] lg:sticky lg:top-12 lg:max-w-none">
+            <div class="phone mx-auto max-w-[280px] lg:sticky lg:top-24 lg:max-w-none">
               <img src="/landing/grammar.webp" width="780" height="1688" loading="lazy" alt="Fiche de grammaire 是 : être, avec la structure A 是 B, l'explication et des exemples à écouter" />
             </div>
           </div>
