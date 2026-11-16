@@ -55,16 +55,43 @@ Objectif à terme : vendre l'application de chinois seule (sans l'italien), en f
 - Prononciation : enregistrement de sa voix et comparaison avec le modèle (sans note automatique des tons, peu
   fiable).
 
+## Bêta en cours (décidé le 16/11/2026)
+
+L'app reste en bêta sur invitation : https://yidiano.com, connexion par e-mail, rôles `admin` / `beta` / `user`,
+version gratuite et essai Yidiano+ de 7 jours en place (voir [COMMERCIALISATION.md](COMMERCIALISATION.md)). Rien
+n'est vendu tant que les tâches « Avant de vendre » ne sont pas faites.
+
+Pendant la bêta :
+- Envoyer aux testeurs et à Elisa le message de changement d'adresse (yidiano.com, reconnexion par e-mail, icône à
+  réinstaller) et le lien du formulaire d'avis.
+- Recruter quelques testeurs de plus (rôle `beta` depuis la page Admin) et suivre leurs retours.
+- Relecture par un locuteur natif (voir « Secondaire »).
+- Page de présentation avec liste d'attente (adresse e-mail pour être prévenu du lancement).
+- Mesure d'usage minimale (voir « Mesure d'audience »), puis vidéo de présentation une fois l'interface stabilisée.
+
 ## Avant de vendre
 
-Abonnement, web d'abord, essai de 7 jours, parrainage, entreprise individuelle au régime micro-entreprise et
-paiement Paddle décidés. Nom, domaine, prix et détails : voir [COMMERCIALISATION.md](COMMERCIALISATION.md).
+Abonnement, web d'abord, version gratuite et essai de 7 jours, parrainage, entreprise individuelle au régime
+micro-entreprise et paiement Paddle décidés. Nom, domaine et détails : voir [COMMERCIALISATION.md](COMMERCIALISATION.md).
 
-- **Comptes et paiement** : connexion par e-mail faite (lien ou code, sans mot de passe, sur invitation pendant le
-  test). Restent la connexion Google / Apple, puis le checkout et les webhooks Paddle sur le web ; les achats
-  intégrés des stores viendront avec les applications mobiles.
-- **Distribution** : PWA sur le web, puis Play Store (TWA) et App Store (Capacitor) ; tests sur vrais iPhone et
-  Android (son, encoche, hors ligne).
+- **Prix** : à fixer (proposition : 7,99 €/mois, 49,99 €/an).
+- **Paiement** : checkout Paddle, webhooks côté serveur, ouverture et fermeture de Yidiano+ selon l'abonnement
+  (l'écran Yidiano+ annonce aujourd'hui « bientôt disponible » après l'essai).
+- **Bêta-testeurs** : premier mois offert au lancement, puis rôle `user`.
+- **Contenu payant protégé** : servir grammaire, lectures et niveaux HSK 2+ par le serveur, seulement aux comptes
+  qui y ont droit (aujourd'hui tout le contenu est dans le code de l'app, le blocage n'est fait que par l'app).
+- **Inscriptions ouvertes** : retirer la liste d'invités (`AUTH_ALLOWED_EMAILS`) une fois le paiement en place.
+- **Comptes** : connexion par e-mail faite ; restent Google, puis Apple.
+- **E-mails** : envoi depuis no-reply@yidiano.com (Brevo, domaine authentifié) au lieu du Gmail personnel.
+- **Légal** : immatriculation de la micro-entreprise, mentions légales, CGV / CGU (renonciation au délai de
+  rétractation), politique de confidentialité (RGPD), suppression du compte et de ses données, médiateur de la
+  consommation.
+- **Marque et domaines** : vérifier « Yidiano » à l'INPI et à l'EUIPO ; décider de yidiano.app et yidiano.fr.
+- **Produit** : objectif par jour au premier lancement, parrainage (filleul 14 jours d'essai, parrain 1 mois offert),
+  captures pour la page de présentation.
+- **Technique** : découper le chargement (3,4 Mo d'un bloc ; niveaux HSK chargés à l'ouverture) ; tests sur vrais
+  iPhone et Android (son, encoche, hors ligne).
+- **Distribution** : PWA sur le web, puis Play Store (TWA) et App Store (Capacitor) avec achats intégrés.
 - **Licences et mentions** (page « À propos / crédits » dans l'app et sur la page de vente) :
   - CC-CEDICT (définitions anglaises) : CC BY-SA 4.0.
   - CFDICT (définitions françaises) : CC BY-SA 3.0, citer https://chine.in/mandarin/dictionnaire/CFDICT/ dans
@@ -77,8 +104,11 @@ paiement Paddle décidés. Nom, domaine, prix et détails : voir [COMMERCIALISAT
     fait dans les crédits de l'app).
   - Le partage à l'identique (BY-SA) s'applique aux données, pas au code de l'app : publier les données modifiées
     (définitions nettoyées) sous la même licence.
-- **Légal** : entreprise individuelle au régime micro-entreprise retenue ; restent l'immatriculation, les mentions
-  légales, les CGV / CGU, la politique de confidentialité (RGPD) et la gestion des données de compte.
-- **Produit** : premier lancement guidé fait (langue d'apprentissage, puis test de niveau directement) ; restent
-  l'objectif par jour, la page de présentation, les captures et l'essai gratuit.
 - **Langues** : ajouter d'autres langues d'interface (espagnol, allemand…) avec le même système de traduction.
+
+## Mesure d'audience
+
+- Pendant la bêta : la base du serveur contient déjà la progression de chaque testeur (réponses, temps de pratique,
+  séries) ; une page Admin de statistiques suffit pour ces quelques comptes.
+- Avant l'ouverture publique : PostHog (hébergement UE) pour l'entonnoir page de présentation → inscription → essai
+  → abonnement et la rétention, avec bandeau de consentement ; pas d'enregistrement de session sans consentement.
