@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { Pause, Play } from 'lucide-react'
+import { Pause, Play, RotateCcw } from 'lucide-react'
 import HanziWriter from 'hanzi-writer'
 import { strokeDataUrl } from '../data/hanzi.js'
 import { useLang } from '../i18n/useLang.js'
@@ -43,6 +43,7 @@ export function HanziBoard({
   showRadical = false,
   controls = false,
   strokeCount = 0,
+  onReplay,
   onMistake,
   onComplete,
 }) {
@@ -182,28 +183,50 @@ export function HanziBoard({
 
       {controls && mode === 'animate' && (
         <div className="mx-auto mt-4 w-full max-w-[300px] rounded-2xl border border-line bg-card p-4">
-          <input
-            type="range"
-            min="0"
-            max={strokeCount}
-            step="0.01"
-            value={position}
-            disabled={!ready || failed}
-            onChange={event => seek(event.target.value)}
-            aria-label={t('hz.timeline')}
-            aria-valuetext={t('hz.strokePosition', { current: currentStroke, total: strokeCount })}
-            className="h-2 w-full cursor-pointer accent-accent disabled:cursor-not-allowed disabled:opacity-50"
-          />
-          <div className="mt-3 flex items-center gap-3">
-            <button
-              type="button"
+          <div className="relative h-5">
+            <input
+              type="range"
+              min="0"
+              max={strokeCount}
+              step="0.01"
+              value={position}
               disabled={!ready || failed}
-              onClick={togglePlayback}
-              aria-label={t(playing ? 'hz.pause' : 'hz.play')}
-              className="inline-flex size-10 shrink-0 items-center justify-center rounded-full bg-seal text-white transition-opacity disabled:opacity-40"
-            >
-              {playing ? <Pause {...ICON} /> : <Play {...ICON} />}
-            </button>
+              onChange={event => seek(event.target.value)}
+              aria-label={t('hz.timeline')}
+              aria-valuetext={t('hz.strokePosition', { current: currentStroke, total: strokeCount })}
+              className="absolute top-1/2 left-0 z-10 h-2 w-full -translate-y-1/2 cursor-pointer accent-accent disabled:cursor-not-allowed disabled:opacity-50"
+            />
+            <div className="pointer-events-none absolute inset-x-[2px] top-1/2 z-20 h-3 -translate-y-1/2" aria-hidden="true">
+              {Array.from({ length: Math.max(0, strokeCount - 1) }, (_, index) => index + 1).map(stroke => (
+                <span
+                  key={stroke}
+                  className="absolute top-0 h-3 w-px -translate-x-1/2 bg-page"
+                  style={{ left: `${(stroke / strokeCount) * 100}%` }}
+                />
+              ))}
+            </div>
+          </div>
+          <div className="mt-3 flex items-center gap-3">
+            <div className="flex shrink-0 gap-2">
+              <button
+                type="button"
+                disabled={!ready || failed}
+                onClick={togglePlayback}
+                aria-label={t(playing ? 'hz.pause' : 'hz.play')}
+                className="inline-flex size-10 items-center justify-center rounded-full bg-seal text-white transition-opacity disabled:opacity-40"
+              >
+                {playing ? <Pause {...ICON} /> : <Play {...ICON} />}
+              </button>
+              <button
+                type="button"
+                disabled={!ready || failed}
+                onClick={onReplay}
+                aria-label={t('hz.replay')}
+                className="inline-flex size-10 items-center justify-center rounded-full border border-line bg-page text-fg transition-colors hover:bg-raised disabled:opacity-40"
+              >
+                <RotateCcw {...ICON} />
+              </button>
+            </div>
             <p className="min-w-0 flex-1 text-sm tabular-nums text-fg-2">
               {t('hz.strokePosition', { current: currentStroke, total: strokeCount })}
             </p>
