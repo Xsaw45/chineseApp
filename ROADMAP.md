@@ -60,12 +60,9 @@ Objectif à terme : vendre l'application de chinois seule (sans l'italien), en f
 Abonnement, web d'abord, essai de 7 jours, parrainage, entreprise individuelle au régime micro-entreprise et
 paiement Paddle décidés. Nom, domaine, prix et détails : voir [COMMERCIALISATION.md](COMMERCIALISATION.md).
 
-- **Séparer l'app de chinois** de LanguesApp : son propre dépôt ou dossier de déploiement, son domaine, sans
-  l'italien ni la page d'accueil commune.
 - **Comptes et paiement** : connexion par e-mail faite (lien ou code, sans mot de passe, sur invitation pendant le
-  test ; même progression que l'accès Tailscale pour la même adresse). Restent la connexion Google / Apple, puis
-  le checkout et les webhooks Paddle sur le web ; les achats intégrés des stores viendront avec les applications
-  mobiles.
+  test). Restent la connexion Google / Apple, puis le checkout et les webhooks Paddle sur le web ; les achats
+  intégrés des stores viendront avec les applications mobiles.
 - **Distribution** : PWA sur le web, puis Play Store (TWA) et App Store (Capacitor) ; tests sur vrais iPhone et
   Android (son, encoche, hors ligne).
 - **Licences et mentions** (page « À propos / crédits » dans l'app et sur la page de vente) :

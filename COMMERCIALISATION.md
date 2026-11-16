@@ -10,20 +10,22 @@ Notes de la discussion des 10 et 11 novembre 2026. Décisions prises par Erwan, 
 - **Statut juridique** : entreprise individuelle (EI) sous le régime micro-entreprise pour démarrer seul.
 - **Paiement web** : **Paddle**, vendeur officiel (« Merchant of Record ») qui encaisse les clients et gère les
   abonnements, les taxes sur les ventes et le support lié aux paiements.
-- Il faut un **nom d'app** et un **domaine** assorti.
+- **Nom** : **Yidiano** (一点, « un peu »), domaine **yidiano.com** acheté chez OVH ; l'app y est en ligne depuis le
+  16/11/2026.
 
-## Nom et domaine (disponibilités vérifiées le 10/11/2026 auprès des registres, RDAP)
+## Nom et domaine
 
-| Nom | .com | .app | .fr | Remarque |
-|---|---|---|---|---|
-| **Hanzimo** (préféré) | libre | libre | libre | court, même prononciation en français et en anglais, évoque 汉字 |
-| Hanzi Dojo | pris | libre | libre | « salle d'entraînement aux caractères » |
-| Mandaroo | pris | libre | libre | joueur, mascotte possible |
-| Mandarinito | libre | libre | libre | long |
+Retenu : **Yidiano**, yidiano.com (OVH, nom de domaine seul, sans hébergement).
 
-Pris (.com et .app) : pandarin, mandarine, xuexi, laoshi, zhongwen, tingshuo, kaishi, pinyo, hanzify…
-À faire : acheter les trois extensions du nom choisi (≈ 30-40 €/an), le .com principal et les autres en
-redirection ; vérifier qu'aucune marque n'existe déjà (INPI, EUIPO).
+Écartés :
+- Hanzimo, d'abord préféré : trop proche d'apps existantes (Hanzio, Hanzii, Hanzijo, Hanzinote).
+- Les noms en « Seal » : InkSeal existe déjà.
+- Tingdong : nom d'une app existante.
+- Pris en .com et .app (vérifié le 10/11/2026, RDAP) : pandarin, mandarine, xuexi, laoshi, zhongwen, tingshuo,
+  kaishi, pinyo, hanzify…
+
+À faire : vérifier qu'aucune marque « Yidiano » n'existe déjà (INPI, EUIPO) ; décider s'il faut aussi les extensions
+.app et .fr en redirection.
 
 ## Proposé (à décider)
 
@@ -94,17 +96,14 @@ prend en charge le maximum. Source : [tarification et périmètre Paddle](https:
 
 ## Travaux techniques, dans l'ordre
 
-1. App séparée sur son domaine : sans l'italien ni la page d'accueil commune, sans l'identification Tailscale.
-2. Comptes : connexion par lien envoyé par e-mail et avec Google ; progression rattachée au compte.
+1. App séparée sur son domaine (fait : https://yidiano.com, dépôt Xsaw45/chineseApp).
+2. Comptes : connexion par lien ou code envoyé par e-mail (fait), puis avec Google ; progression rattachée au compte.
 3. Essai, version gratuite et abonnement avec Paddle.
 4. Parrainage.
 5. Page de présentation avec tarifs ; pages légales.
 6. Premier lancement guidé : langue puis test de placement (fait), objectif par jour (reste).
 
-Les étapes 1 et 2 ne dépendent d'aucune décision ; le nom s'ajoute quand il est choisi.
-
 ## Décisions encore attendues
 
-1. Le nom.
-2. Le modèle : 7 jours puis tout payant, ou 7 jours puis version gratuite limitée.
-3. Le prix final.
+1. Le modèle : 7 jours puis tout payant, ou 7 jours puis version gratuite limitée.
+2. Le prix final.
