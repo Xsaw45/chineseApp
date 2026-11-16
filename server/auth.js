@@ -1,4 +1,5 @@
 import { createHash, randomBytes, randomInt, timingSafeEqual } from 'node:crypto'
+import { accountUser } from './access.js'
 
 // Connexion par e-mail : l'utilisateur recoit un lien et un code a 6 chiffres (le code sert quand le lien s'ouvre
 // ailleurs que dans l'app installee, ex. iPhone). L'identite est l'adresse e-mail, en minuscules (meme identifiant
@@ -28,12 +29,13 @@ function readCookie(request, name) {
   return null
 }
 
-/** Utilisateur de la session (cookie), ou null. */
+/** Utilisateur et droits de la session (cookie), ou null. */
 export function sessionUser(request, db) {
   const token = readCookie(request, SESSION_COOKIE)
   if (!token) return null
-  const email = db.auth.sessionEmail(hash(token), Date.now())
-  return email ? { login: email, name: email, method: 'email' } : null
+  const now = Date.now()
+  const email = db.auth.sessionEmail(hash(token), now)
+  return email ? accountUser(db.accounts.ensure(email, now), now) : null
 }
 
 const emailSchema = { type: 'string', minLength: 3, maxLength: 254, pattern: '^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$' }
@@ -47,6 +49,7 @@ export function authRoutes({ db, mailer, publicUrl, allowedEmails }) {
     const now = Date.now()
     db.auth.spendLoginRequest(email)
     db.auth.createSession(hash(token), email, now + SESSION_TTL, now)
+    db.accounts.ensure(email, now)
     reply.header('set-cookie', [
       `${SESSION_COOKIE}=${token}`, 'Path=/', 'HttpOnly', 'SameSite=Lax', `Max-Age=${SESSION_TTL / 1000}`,
       ...(secure ? ['Secure'] : []),

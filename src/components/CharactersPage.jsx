@@ -1,6 +1,7 @@
 import { useLayoutEffect, useRef, useState } from 'react'
-import { ChevronRight } from 'lucide-react'
-import { HANZI_LEVELS, charsForLevel, getChar, hanziLevelLabel } from '../data/hanzi.js'
+import { ChevronRight, Lock } from 'lucide-react'
+import { HANZI, HANZI_LEVELS, charsForLevel, getChar, hanziLevelLabel } from '../data/hanzi.js'
+import { canUseHanziLevel } from '../access/rules.js'
 import { HANZI_PRACTICE_SIZE, buildHanziPractice, currentHanziLevel, getCharProgress } from '../utils/hanziQuiz.js'
 import { isDueForReview } from '../utils/spacedrep.js'
 import { useLang } from '../i18n/useLang.js'
@@ -30,10 +31,11 @@ function CharTile({ ch, progress, onOpen }) {
   )
 }
 
-export function CharactersPage({ progressMap, applyUpdates, onBack }) {
+export function CharactersPage({ hasPlus, onUpgrade, progressMap, applyUpdates, onBack }) {
   const { t } = useLang()
-  // Niveau affiché : le niveau en cours.
-  const [level, setLevel] = useState(() => currentHanziLevel(progressMap))
+  // Niveau affiché : le niveau en cours, limité au HSK 1 en accès gratuit.
+  const [level, setLevel] = useState(() => hasPlus ? currentHanziLevel(progressMap) : 1)
+  const candidates = hasPlus ? HANZI : charsForLevel(1)
   // 'list' | 'radicals' | { char } | { practice, id }
   const [view, setView] = useState('list')
 
@@ -48,10 +50,10 @@ export function CharactersPage({ progressMap, applyUpdates, onBack }) {
   }, [view])
 
   const toList = () => setView('list')
-  const startPractice = () => open({ practice: buildHanziPractice(progressMap, level), id: (view.id ?? 0) + 1 })
+  const startPractice = () => open({ practice: buildHanziPractice(progressMap, level, candidates), id: (view.id ?? 0) + 1 })
 
   if (view.char) return <CharacterDetail ch={getChar(view.char)} onBack={toList} />
-  if (view === 'radicals') return <RadicalsPage progressMap={progressMap} applyUpdates={applyUpdates} onBack={toList} />
+  if (view === 'radicals') return <RadicalsPage hasPlus={hasPlus} onUpgrade={onUpgrade} progressMap={progressMap} applyUpdates={applyUpdates} onBack={toList} />
   if (view.practice) {
     return (
       <CharacterPractice
@@ -67,7 +69,7 @@ export function CharactersPage({ progressMap, applyUpdates, onBack }) {
 
   const chars = charsForLevel(level)
   const known = chars.filter(ch => getCharProgress(progressMap, ch).known).length
-  const canPractice = buildHanziPractice(progressMap, level).length > 0
+  const canPractice = buildHanziPractice(progressMap, level, candidates).length > 0
 
   return (
     <Screen>
@@ -80,13 +82,17 @@ export function CharactersPage({ progressMap, applyUpdates, onBack }) {
             <button
               key={lv}
               type="button"
-              onClick={() => setLevel(lv)}
+              onClick={() => {
+                if (!canUseHanziLevel(lv, hasPlus)) onUpgrade()
+                else setLevel(lv)
+              }}
               aria-pressed={lv === level}
               className={`h-9 shrink-0 rounded-full border px-4 text-sm transition-colors duration-150 ease-out ${
                 lv === level ? 'border-seal bg-seal text-white' : 'border-line bg-card text-fg-2 hover:bg-raised'
               }`}
             >
               {hanziLevelLabel(lv)}
+              {!canUseHanziLevel(lv, hasPlus) && <Lock size={13} className="ml-1 inline" aria-label={t('plus.locked')} />}
             </button>
           ))}
         </div>

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useAccess } from './access/context.js'
 import { withActivity, markStepDone, addPracticeTime } from './utils/activity.js'
 import { PLACEMENT_KEY } from './utils/levelTest.js'
 import { VocabLevelTest } from './components/VocabLevelTest.jsx'
@@ -21,13 +22,22 @@ import { GrammarPage } from './components/GrammarPage.jsx'
 import { ReadingPage } from './components/ReadingPage.jsx'
 import { TodayPage } from './components/TodayPage.jsx'
 import { SettingsPage } from './components/SettingsPage.jsx'
+import { PlusPage } from './components/PlusPage.jsx'
+import { AdminPage } from './components/AdminPage.jsx'
 
 export default function App() {
   // 'home' (choix du module) | 'hsk' (vocabulaire : tests et niveaux) | 'vocabulary' (liste des mots) | 'classifiers'
-  // | 'pinyin' | 'hanzi' | 'grammar' | 'reading' | 'today' (séance du jour) | 'settings'
+  // | 'pinyin' | 'hanzi' | 'grammar' | 'reading' | 'today' | 'settings' | 'plus' | 'admin'
   const [screen, setScreen] = useState('home')
+  const [plusBack, setPlusBack] = useState('settings')
+  const openPlus = useCallback(from => {
+    setPlusBack(from)
+    setScreen('plus')
+  }, [])
   const { progressMap, latestMap, getProgress, applyUpdates: saveUpdates, loading } = useProgress()
+  const { hasPlus, loading: accessLoading } = useAccess()
   const { levelStats, unlockedLevels } = useLevels(progressMap)
+  const accessibleLevels = useMemo(() => hasPlus ? unlockedLevels : [1], [hasPlus, unlockedLevels])
   // Toute progression enregistrée compte aussi dans l'activité du jour (série, éléments maîtrisés).
   const applyUpdates = useCallback(updates => saveUpdates(withActivity(latestMap(), updates)), [saveUpdates, latestMap])
 
@@ -69,13 +79,13 @@ export default function App() {
   } = useQuiz(progressMap, getProgress, applyUpdates, lang)
 
   // Temps de pratique : dans un module ou un test, pas sur l'accueil ni dans les paramètres.
-  const practicing = !loading && (state !== QUIZ_STATES.IDLE || !['home', 'settings'].includes(screen))
+  const practicing = !loading && !accessLoading && (state !== QUIZ_STATES.IDLE || !['home', 'settings', 'plus', 'admin'].includes(screen))
   usePracticeTime(practicing, seconds => saveUpdates([addPracticeTime(latestMap(), seconds)]))
 
   const home = () => setScreen('home')
   let content
 
-  if (loading) {
+  if (loading || accessLoading) {
     content = (
       <div className="flex min-h-dvh items-center justify-center bg-page">
         <p className="text-[15px] text-fg-3">{translate(lang, 'app.loading')}</p>
@@ -87,7 +97,7 @@ export default function App() {
         results={results}
         onRestart={() => {
           resetQuiz()
-          setTimeout(() => startQuiz(unlockedLevels), 0)
+          setTimeout(() => startQuiz(accessibleLevels), 0)
         }}
         onHome={() => {
           if (screen === 'today') applyUpdates([markStepDone(progressMap, 'vocab')])
@@ -135,31 +145,37 @@ export default function App() {
       />
     )
   } else if (screen === 'vocabulary') {
-    content = <VocabularyPage onBack={() => setScreen('hsk')} />
+    content = <VocabularyPage hasPlus={hasPlus} onUpgrade={() => openPlus('vocabulary')} onBack={() => setScreen('hsk')} />
   } else if (screen === 'classifiers') {
-    content = <ClassifiersPage progressMap={progressMap} applyUpdates={applyUpdates} onBack={home} />
+    content = <ClassifiersPage hasPlus={hasPlus} onUpgrade={() => openPlus('classifiers')} progressMap={progressMap} applyUpdates={applyUpdates} onBack={home} />
   } else if (screen === 'pinyin') {
     content = <PinyinPage progressMap={progressMap} applyUpdates={applyUpdates} onBack={home} />
   } else if (screen === 'hanzi') {
-    content = <CharactersPage progressMap={progressMap} applyUpdates={applyUpdates} onBack={home} />
+    content = <CharactersPage hasPlus={hasPlus} onUpgrade={() => openPlus('hanzi')} progressMap={progressMap} applyUpdates={applyUpdates} onBack={home} />
   } else if (screen === 'grammar') {
-    content = <GrammarPage progressMap={progressMap} applyUpdates={applyUpdates} onBack={home} />
+    content = <GrammarPage hasPlus={hasPlus} onUpgrade={() => openPlus('grammar')} progressMap={progressMap} applyUpdates={applyUpdates} onBack={home} />
   } else if (screen === 'reading') {
-    content = <ReadingPage progressMap={progressMap} applyUpdates={applyUpdates} onBack={home} />
+    content = <ReadingPage hasPlus={hasPlus} onUpgrade={() => openPlus('reading')} progressMap={progressMap} applyUpdates={applyUpdates} onBack={home} />
   } else if (screen === 'settings') {
-    content = <SettingsPage onBack={home} />
+    content = <SettingsPage onBack={home} onOpenPlus={() => openPlus('settings')} onOpenAdmin={() => setScreen('admin')} />
+  } else if (screen === 'plus') {
+    content = <PlusPage onBack={() => setScreen(plusBack)} />
+  } else if (screen === 'admin') {
+    content = <AdminPage onBack={() => setScreen('settings')} />
   } else if (screen === 'today') {
-    content = <TodayPage progressMap={progressMap} applyUpdates={applyUpdates} onBack={home} onStartVocab={() => startQuiz(unlockedLevels)} />
+    content = <TodayPage hasPlus={hasPlus} progressMap={progressMap} applyUpdates={applyUpdates} onBack={home} onStartVocab={() => startQuiz(accessibleLevels)} />
   } else if (screen === 'hsk') {
     content = (
       <Dashboard
+        hasPlus={hasPlus}
+        onUpgrade={() => openPlus('hsk')}
         levelStats={levelStats}
         unlockedLevels={unlockedLevels}
         progressMap={progressMap}
         placementDone={placementDone}
         onStartPlacement={() => setLevelTest({ mode: 'placement' })}
         onStartUnlockTest={level => setLevelTest({ mode: 'unlock', level })}
-        onStartQuiz={() => startQuiz(unlockedLevels)}
+        onStartQuiz={() => startQuiz(accessibleLevels)}
         onOpenVocabulary={() => setScreen('vocabulary')}
         onBack={home}
       />
@@ -179,6 +195,7 @@ export default function App() {
         onOpenReading={() => setScreen('reading')}
         onOpenClassifiers={() => setScreen('classifiers')}
         onOpenSettings={() => setScreen('settings')}
+        hasPlus={hasPlus}
       />
     )
   }

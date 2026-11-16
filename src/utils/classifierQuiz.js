@@ -27,16 +27,16 @@ function pickWrong(cl, candidates) {
   return [...same, ...others.filter(c => !same.includes(c))].slice(0, 3)
 }
 
-function fillQuestion(cl) {
+function fillQuestion(cl, candidates) {
   const example = pick(cl.examples)
   const valid = new Set([cl.char, ...(example.alt || [])])
-  const wrong = pickWrong(cl, CLASSIFIERS.filter(c => !c.generic && !valid.has(c.char)))
+  const wrong = pickWrong(cl, candidates.filter(c => !c.generic && !valid.has(c.char)))
   const options = shuffle([cl, ...wrong]).map(c => ({ key: c.char, label: c.char, sub: c.pinyin, correct: c === cl }))
   return { cl, type: 'fill', example, options }
 }
 
-function usageQuestion(cl) {
-  const wrong = pickWrong(cl, CLASSIFIERS)
+function usageQuestion(cl, candidates) {
+  const wrong = pickWrong(cl, candidates)
   const options = shuffle([cl, ...wrong]).map(c => ({ key: c.char, label: c.usage, correct: c === cl }))
   return { cl, type: 'usage', options }
 }
@@ -45,16 +45,16 @@ function usageQuestion(cl) {
  * Classificateurs à réviser en priorité (échéance passée, puis en cours d'apprentissage), complétés au hasard
  * par les autres pour toujours proposer un test complet.
  */
-export function buildClassifierQuiz(progressMap) {
+export function buildClassifierQuiz(progressMap, candidates = CLASSIFIERS) {
   const due = []
   const learning = []
   const rest = []
-  for (const cl of CLASSIFIERS) {
+  for (const cl of candidates) {
     const p = getClassifierProgress(progressMap, cl)
     if (p.known && isDueForReview(p)) due.push(cl)
     else if (!p.known) learning.push(cl)
     else rest.push(cl)
   }
   const selected = [...shuffle(due), ...shuffle(learning), ...shuffle(rest)].slice(0, CLASSIFIER_QUIZ_SIZE)
-  return shuffle(selected).map(cl => (Math.random() < 0.65 ? fillQuestion(cl) : usageQuestion(cl)))
+  return shuffle(selected).map(cl => (Math.random() < 0.65 ? fillQuestion(cl, candidates) : usageQuestion(cl, candidates)))
 }

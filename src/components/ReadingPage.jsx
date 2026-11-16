@@ -1,19 +1,20 @@
 import { useState } from 'react'
 import { READINGS } from '../data/reading.js'
+import { canUseReading } from '../access/rules.js'
 import { getReadingProgress } from '../utils/readingQuiz.js'
 import { PASS_THRESHOLD } from '../utils/lessonProgress.js'
 import { useLang } from '../i18n/useLang.js'
 import { LessonStatus } from './LessonStatus.jsx'
 import { ReadingText } from './ReadingText.jsx'
-import { Screen, SectionLabel, TopBar } from './ui.jsx'
+import { PlusBadge, Screen, SectionLabel, TopBar } from './ui.jsx'
 
 const LEVELS = [...new Set(READINGS.map(r => r.level))]
 
 /** Textes et dialogues par niveau HSK, tous ouverts : on choisit son sujet. */
-export function ReadingPage({ progressMap, applyUpdates, onBack }) {
+export function ReadingPage({ hasPlus, onUpgrade, progressMap, applyUpdates, onBack }) {
   const { t, l, pct } = useLang()
   const [openId, setOpenId] = useState(null)
-  const open = READINGS.find(r => r.id === openId)
+  const open = READINGS.find(r => r.id === openId && canUseReading(r, hasPlus))
 
   if (open) {
     return <ReadingText key={open.id} reading={open} progressMap={progressMap} applyUpdates={applyUpdates} onExit={() => setOpenId(null)} />
@@ -30,23 +31,26 @@ export function ReadingPage({ progressMap, applyUpdates, onBack }) {
           <section key={level} className="mt-8">
             <SectionLabel>HSK {level}</SectionLabel>
             <ol className="divide-y divide-line overflow-hidden rounded-2xl border border-line bg-card">
-              {READINGS.filter(r => r.level === level).map(reading => (
-                <li key={reading.id}>
-                  <button
-                    type="button"
-                    onClick={() => setOpenId(reading.id)}
-                    className="flex w-full items-center gap-4 px-4 py-4 text-left transition-colors duration-150 ease-out hover:bg-raised"
-                  >
-                    <span className="min-w-0 flex-1">
-                      <span className="block text-base font-medium text-fg">
-                        {l(reading.title)} <span className="chinese-text font-normal text-fg-2">{reading.zh}</span>
+              {READINGS.filter(r => r.level === level).map(reading => {
+                const unlocked = canUseReading(reading, hasPlus)
+                return (
+                  <li key={reading.id}>
+                    <button
+                      type="button"
+                      onClick={() => unlocked ? setOpenId(reading.id) : onUpgrade()}
+                      className="flex w-full items-center gap-4 px-4 py-4 text-left transition-colors duration-150 ease-out hover:bg-raised"
+                    >
+                      <span className="min-w-0 flex-1">
+                        <span className={`block text-base font-medium ${unlocked ? 'text-fg' : 'text-fg-3'}`}>
+                          {l(reading.title)} {unlocked && <span className="chinese-text font-normal text-fg-2">{reading.zh}</span>}
+                        </span>
+                        <span className="mt-0.5 block text-sm text-fg-2">{t(reading.kind === 'dialogue' ? 'rd.dialogue' : 'rd.text')}</span>
                       </span>
-                      <span className="mt-0.5 block text-sm text-fg-2">{t(reading.kind === 'dialogue' ? 'rd.dialogue' : 'rd.text')}</span>
-                    </span>
-                    <LessonStatus progress={getReadingProgress(progressMap, reading)} unlocked />
-                  </button>
-                </li>
-              ))}
+                      {unlocked ? <LessonStatus progress={getReadingProgress(progressMap, reading)} unlocked /> : <PlusBadge />}
+                    </button>
+                  </li>
+                )
+              })}
             </ol>
           </section>
         ))}

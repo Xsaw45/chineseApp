@@ -20,14 +20,14 @@ function countWords(progressMap, unlockedLevels) {
 }
 
 /** placementDone : test de niveau déjà fait ; sinon une invitation à le faire s'affiche en haut. */
-export function Dashboard({ levelStats, unlockedLevels, progressMap, placementDone, onStartPlacement, onStartUnlockTest, onStartQuiz, onOpenVocabulary, onBack }) {
+export function Dashboard({ hasPlus, onUpgrade, levelStats, unlockedLevels, progressMap, placementDone, onStartPlacement, onStartUnlockTest, onStartQuiz, onOpenVocabulary, onBack }) {
   const { t } = useLang()
-  const counts = countWords(progressMap, unlockedLevels)
+  const accessibleLevels = hasPlus ? unlockedLevels : [1]
+  const counts = countWords(progressMap, accessibleLevels)
   const activeCount = counts.active
   const canStart = activeCount > 0
   const stats = levelStats || ALL_LEVELS.map(l => ({ level: l, total: getWordsForLevel(l).length, known: 0, pct: 0 }))
-  const firstLocked = stats.find(s => !unlockedLevels.includes(s.level))?.level
-
+  const firstLocked = hasPlus ? stats.find(s => !unlockedLevels.includes(s.level))?.level : null
   return (
     <Screen>
       <TopBar onBack={onBack} backLabel={t('nav.modules')} />
@@ -60,8 +60,10 @@ export function Dashboard({ levelStats, unlockedLevels, progressMap, placementDo
               key={stat.level}
               stat={stat}
               unlocked={unlockedLevels.includes(stat.level)}
+              premiumLocked={!hasPlus && stat.level > 1}
               last={stat.level === ALL_LEVELS.at(-1)}
               onUnlockTest={stat.level === firstLocked ? () => onStartUnlockTest(stat.level) : null}
+              onUpgrade={onUpgrade}
             />
           ))}
         </div>

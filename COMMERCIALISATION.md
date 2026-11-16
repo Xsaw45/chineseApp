@@ -5,7 +5,7 @@ Notes de la discussion des 10 et 11 novembre 2026. Décisions prises par Erwan, 
 ## Décidé
 
 - **Abonnement**, en **web d'abord** (PWA). Si ça marche : Android, puis Apple.
-- **Essai gratuit de 7 jours**, puis payant. Prix pas encore fixé.
+- **Version gratuite permanente** et **essai Yidiano+ de 7 jours**, déclenché par l'utilisateur, sans carte bancaire.
 - **Parrainage** pour faire venir des utilisateurs.
 - **Statut juridique** : entreprise individuelle (EI) sous le régime micro-entreprise pour démarrer seul.
 - **Paiement web** : **Paddle**, vendeur officiel (« Merchant of Record ») qui encaisse les clients et gère les
@@ -27,11 +27,33 @@ Retenu : **Yidiano**, yidiano.com (OVH, nom de domaine seul, sans hébergement).
 À faire : vérifier qu'aucune marque « Yidiano » n'existe déjà (INPI, EUIPO) ; décider s'il faut aussi les extensions
 .app et .fr en redirection.
 
+## Freemium retenu
+
+Les contenus verrouillés restent visibles avec un cadenas, sans aperçu du premier élément payant. La progression est
+conservée à la fin de l'essai ou de l'abonnement ; seul l'accès se referme.
+
+| Module | Gratuit | Yidiano+ |
+| --- | --- | --- |
+| Pinyin et tons | Les 7 leçons et le tableau des sons | Identique |
+| Vocabulaire | HSK 1 (502 mots) | HSK 1 à 9 |
+| Caractères | HSK 1 (300 caractères) | HSK 1 à 9 |
+| Clés | Les 20 premières | Toutes |
+| Grammaire | Les 16 points HSK 1 | HSK 1 à 4 |
+| Lecture | « Se présenter » et « Au restaurant » | Tous les textes |
+| Classificateurs | « Personnes & général » et « Objets selon leur forme » | Tous les groupes |
+| Aujourd'hui | Séance sur les contenus gratuits | Tous les contenus accessibles |
+| Synchronisation et hors ligne | Inclus | Inclus |
+
+- L'essai Yidiano+ dure 7 jours, commence à la demande et ne peut être utilisé qu'une fois.
+- Le rôle `admin` a l'accès complet et peut afficher l'application comme un compte gratuit.
+- Le rôle `beta` a l'accès complet pendant la bêta. Au lancement commercial, les bêta-testeurs recevront un mois
+  offert, puis deviendront des utilisateurs ordinaires sauf abonnement.
+- Le rôle `user` suit les droits gratuits, l'essai et l'abonnement.
+- Les restrictions sont d'abord appliquées dans le client. Avant d'ouvrir les inscriptions publiques, les contenus
+  payants devront aussi être servis uniquement après contrôle des droits côté serveur.
+
 ## Proposé (à décider)
 
-- **Essai** : 7 jours complets **sans carte bancaire**, puis une **version gratuite limitée qui reste** (pinyin, début
-  du HSK 1, page Aujourd'hui sur ce contenu), le reste payant. Un utilisateur non converti continue, garde sa série,
-  s'abonne plus tard ou parraine. Alternative : carte demandée dès l'essai (moins d'inscrits, meilleure conversion).
 - **Prix** de départ : 7,99 €/mois et 49,99 €/an (annuel mis en avant). Les concurrents (HelloChinese, Duolingo
   Super) seraient autour de 10-13 €/mois : à vérifier. Modifiable sans toucher au code.
 - **Parrainage**, récompense des deux côtés : le filleul a 14 jours d'essai au lieu de 7 ; le parrain gagne 1 mois
@@ -103,7 +125,6 @@ prend en charge le maximum. Source : [tarification et périmètre Paddle](https:
 5. Page de présentation avec tarifs ; pages légales.
 6. Premier lancement guidé : langue puis test de placement (fait), objectif par jour (reste).
 
-## Décisions encore attendues
+## Décision encore attendue
 
-1. Le modèle : 7 jours puis tout payant, ou 7 jours puis version gratuite limitée.
-2. Le prix final.
+1. Le prix final.

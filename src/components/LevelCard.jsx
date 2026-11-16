@@ -1,20 +1,21 @@
 import { Check, Lock } from 'lucide-react'
 import { useLang } from '../i18n/useLang.js'
-import { Button, ProgressBar } from './ui.jsx'
+import { Button, LockedAction, ProgressBar } from './ui.jsx'
 import { ICON_SM } from './uiStyles.js'
 
 /** onUnlockTest : sur le premier niveau verrouillé, lance le test qui le débloque. */
-export function LevelCard({ stat, unlocked, last, onUnlockTest }) {
+export function LevelCard({ stat, unlocked, premiumLocked = false, last, onUnlockTest, onUpgrade }) {
   const { t, pct } = useLang()
+  const available = unlocked && !premiumLocked
   const remaining = Math.ceil(stat.total * 0.8) - stat.known
 
   return (
-    <div className={`rounded-2xl border border-line p-4 ${unlocked ? 'bg-card' : 'bg-page'}`}>
-      <div className={unlocked ? '' : 'opacity-60'}>
+    <div className={`rounded-2xl border border-line p-4 ${available ? 'bg-card' : 'bg-page'}`}>
+      <div className={available ? '' : 'opacity-60'}>
         <div className="mb-3 flex items-center justify-between">
           <span className="inline-flex items-center gap-2 text-base font-medium text-fg">
             HSK {stat.level}
-            {!unlocked && <Lock {...ICON_SM} className="text-fg-3" />}
+            {!available && <Lock {...ICON_SM} className="text-fg-3" />}
           </span>
           <span className="text-sm tabular-nums text-fg-3">{stat.known} / {stat.total}</span>
         </div>
@@ -23,10 +24,10 @@ export function LevelCard({ stat, unlocked, last, onUnlockTest }) {
 
         <div className="mt-2 flex justify-between gap-3 text-sm text-fg-3">
           <span className="tabular-nums">{t('vocab.mastered', { pct: pct(stat.pct) })}</span>
-          {unlocked && !last && remaining > 0 && (
+          {available && !last && remaining > 0 && (
             <span className="tabular-nums">{t('vocab.toUnlock', { n: remaining, level: stat.level + 1 })}</span>
           )}
-          {unlocked && !last && remaining <= 0 && (
+          {available && !last && remaining <= 0 && (
             <span className="inline-flex items-center gap-1 text-good"><Check {...ICON_SM} />{t('vocab.unlocked', { level: stat.level + 1 })}</span>
           )}
         </div>
@@ -36,6 +37,7 @@ export function LevelCard({ stat, unlocked, last, onUnlockTest }) {
           {t('lt.unlockButton', { level: stat.level })}
         </Button>
       )}
+      {premiumLocked && <LockedAction onClick={onUpgrade} className="mt-4" />}
     </div>
   )
 }

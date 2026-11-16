@@ -38,6 +38,14 @@ export function openDb(path) {
       email TEXT NOT NULL,
       expires_at INTEGER NOT NULL
     ) WITHOUT ROWID;
+    CREATE TABLE IF NOT EXISTS accounts (
+      email TEXT PRIMARY KEY,
+      role TEXT NOT NULL DEFAULT 'user' CHECK (role IN ('admin', 'beta', 'user')),
+      trial_started_at INTEGER,
+      trial_expires_at INTEGER,
+      plus_expires_at INTEGER,
+      created_at INTEGER NOT NULL
+    ) WITHOUT ROWID;
   `)
 
   const currentSeq = db.prepare('SELECT seq FROM counter WHERE id = 1')
@@ -70,6 +78,21 @@ export function openDb(path) {
   const getSession = db.prepare('SELECT email FROM sessions WHERE token_hash = ? AND expires_at > ?')
   const deleteSession = db.prepare('DELETE FROM sessions WHERE token_hash = ?')
   const deleteExpiredSessions = db.prepare('DELETE FROM sessions WHERE expires_at <= ?')
+  const getAccount = db.prepare('SELECT * FROM accounts WHERE email = ?')
+  const insertAccount = db.prepare("INSERT OR IGNORE INTO accounts (email, role, created_at) VALUES (?, 'user', ?)")
+  const listAccounts = db.prepare('SELECT * FROM accounts ORDER BY created_at, email')
+  const setAccountRole = db.prepare(`
+    INSERT INTO accounts (email, role, created_at) VALUES (?, ?, ?)
+    ON CONFLICT (email) DO UPDATE SET role = excluded.role
+  `)
+  const setPlusExpiry = db.prepare('UPDATE accounts SET plus_expires_at = ? WHERE email = ?')
+  const startTrial = db.prepare(`
+    UPDATE accounts
+    SET trial_started_at = ?, trial_expires_at = ?
+    WHERE email = ? AND trial_started_at IS NULL
+    RETURNING *
+  `)
+
 
   const toChange = (row) => ({
     key: row.key,
@@ -127,6 +150,28 @@ export function openDb(path) {
       sessionEmail: (tokenHash, now) => getSession.get(tokenHash, now)?.email ?? null,
       deleteSession: (tokenHash) => deleteSession.run(tokenHash),
     },
+    accounts: {
+      ensure(email, now = Date.now()) {
+        insertAccount.run(email, now)
+        return getAccount.get(email)
+      },
+      get: (email) => getAccount.get(email) || null,
+      list: () => listAccounts.all(),
+      setRole(email, role, now = Date.now()) {
+        setAccountRole.run(email, role, now)
+        return getAccount.get(email)
+      },
+      setPlusExpiresAt(email, expiresAt, now = Date.now()) {
+        insertAccount.run(email, now)
+        setPlusExpiry.run(expiresAt, email)
+        return getAccount.get(email)
+      },
+      startTrial(email, now, expiresAt) {
+        insertAccount.run(email, now)
+        return startTrial.get(now, expiresAt, email) || null
+      },
+    },
+
 
     /** Copie coherente de la base (sauvegardes), meme pendant les ecritures. */
     snapshot(dest) {

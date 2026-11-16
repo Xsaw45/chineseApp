@@ -37,11 +37,11 @@ export const allowedMistakes = ch => Math.max(1, Math.floor(ch.strokes / 4))
  * niveau choisi, puis ses nouveaux caractères, les plus simples (moins de traits) d'abord.
  * Étape de chaque caractère : 0 bonne réponse → tracer sur le modèle ; ensuite → écrire de mémoire.
  */
-export function buildHanziPractice(progressMap, level) {
-  const due = HANZI.filter(ch => isDueForReview(getCharProgress(progressMap, ch)))
+export function buildHanziPractice(progressMap, level, candidates = HANZI) {
+  const due = candidates.filter(ch => isDueForReview(getCharProgress(progressMap, ch)))
   const learning = []
   const fresh = []
-  for (const ch of charsForLevel(level)) {
+  for (const ch of candidates.filter(ch => ch.level === level)) {
     const p = getCharProgress(progressMap, ch)
     if (p.known) continue
     ;(p.successCount > 0 ? learning : fresh).push(ch)
@@ -72,9 +72,9 @@ export const displayForms = radical => radicalForms(radical.n, true).slice(0, 2)
 const sameLabel = (a, b) => LANGS.some(lang => a.meaning[lang].toLowerCase() === b.meaning[lang].toLowerCase())
 
 /** 3 autres clés testées, de sens différents entre elles et de la bonne réponse. */
-function wrongRadicals(radical) {
+function wrongRadicals(radical, candidates) {
   const chosen = []
-  for (const r of shuffle(QUIZ_RADICALS)) {
+  for (const r of shuffle(candidates)) {
     if (chosen.length === CHOICES - 1) break
     if (r.n === radical.n || [radical, ...chosen].some(o => sameLabel(o, r))) continue
     chosen.push(r)
@@ -82,30 +82,30 @@ function wrongRadicals(radical) {
   return chosen
 }
 
-function meaningQuestion(radical) {
-  const options = shuffle([radical, ...wrongRadicals(radical)])
+function meaningQuestion(radical, candidates) {
+  const options = shuffle([radical, ...wrongRadicals(radical, candidates)])
     .map(r => ({ key: r.n, label: r.meaning, correct: r === radical }))
   return { radical, type: 'meaning', options }
 }
 
 /** Un caractère qui contient la clé (pas la clé elle-même) → choisir sa clé. */
-function charQuestion(radical) {
-  const candidates = CHARS_BY_RADICAL.get(radical.n).filter(ch => !radical.forms.includes(ch.c) && ch.c !== radical.simplified)
-  if (!candidates.length) return meaningQuestion(radical)
-  const ch = pick(candidates.slice(0, 12)) // parmi les plus courants (ordre des listes HSK)
+function charQuestion(radical, candidates) {
+  const chars = CHARS_BY_RADICAL.get(radical.n).filter(ch => !radical.forms.includes(ch.c) && ch.c !== radical.simplified)
+  if (!chars.length) return meaningQuestion(radical, candidates)
+  const ch = pick(chars.slice(0, 12)) // parmi les plus courants (ordre des listes HSK)
   const forms = r => (r === radical ? radicalForms(r.n, ch.simplifiedRadical) : displayForms(r)).slice(0, 2).join(' ')
-  const options = shuffle([radical, ...wrongRadicals(radical)])
+  const options = shuffle([radical, ...wrongRadicals(radical, candidates)])
     .map(r => ({ key: r.n, label: forms(r), correct: r === radical }))
   return { radical, type: 'char', ch, options }
 }
 
 /** Clés à réviser, puis en cours d'apprentissage, puis nouvelles par fréquence ; complété par les autres. */
-export function buildRadicalQuiz(progressMap) {
+export function buildRadicalQuiz(progressMap, candidates = QUIZ_RADICALS) {
   const due = []
   const learning = []
   const fresh = []
   const rest = []
-  for (const r of QUIZ_RADICALS) {
+  for (const r of candidates) {
     const p = getRadicalProgress(progressMap, r)
     if (p.known && isDueForReview(p)) due.push(r)
     else if (p.known) rest.push(r)
@@ -113,5 +113,5 @@ export function buildRadicalQuiz(progressMap) {
     else fresh.push(r)
   }
   const selected = [...shuffle(due), ...shuffle(learning), ...fresh, ...shuffle(rest)].slice(0, RADICAL_QUIZ_SIZE)
-  return shuffle(selected).map(r => (Math.random() < 0.5 ? meaningQuestion(r) : charQuestion(r)))
+  return shuffle(selected).map(r => (Math.random() < 0.5 ? meaningQuestion(r, candidates) : charQuestion(r, candidates)))
 }

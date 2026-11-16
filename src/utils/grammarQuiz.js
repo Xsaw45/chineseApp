@@ -143,8 +143,8 @@ export function buildLevelTest(progressMap, level) {
  * Révision : jusqu'à 5 points réussis (ceux à revoir d'abord), une question par point à tour de rôle jusqu'à 10.
  * Vide si aucun point n'est réussi.
  */
-export function buildReviewQuiz(progressMap) {
-  const passed = GRAMMAR_POINTS.filter(p => isLessonPassed(getPointProgress(progressMap, p)))
+export function buildReviewQuiz(progressMap, candidates = GRAMMAR_POINTS) {
+  const passed = candidates.filter(p => isLessonPassed(getPointProgress(progressMap, p)))
   const due = passed.filter(p => isLessonDue(getPointProgress(progressMap, p)))
   const points = [...shuffle(due), ...shuffle(passed.filter(p => !due.includes(p)))].slice(0, REVIEW_POINTS)
   const pools = points.map(p => shuffle(allQuestions(p)))

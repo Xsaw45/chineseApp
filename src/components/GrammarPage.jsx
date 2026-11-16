@@ -1,12 +1,13 @@
 import { useState } from 'react'
 import { GRAMMAR_POINTS } from '../data/grammar.js'
+import { canUseGrammarPoint } from '../access/rules.js'
 import { buildLevelTest, buildReviewQuiz, getPointProgress, isPointUnlocked, scoreByPoint, POINT_QUIZ_SIZE } from '../utils/grammarQuiz.js'
 import { applyLessonResult, isLessonDue, isLessonPassed, PASS_THRESHOLD } from '../utils/lessonProgress.js'
 import { GrammarPoint } from './GrammarPoint.jsx'
 import { GrammarQuiz } from './GrammarQuiz.jsx'
 import { LessonStatus } from './LessonStatus.jsx'
 import { useLang } from '../i18n/useLang.js'
-import { Button, Score, Screen, SectionLabel, TopBar } from './ui.jsx'
+import { Button, PlusBadge, Score, Screen, SectionLabel, TopBar } from './ui.jsx'
 
 const LEVELS = [...new Set(GRAMMAR_POINTS.map(p => p.level))]
 
@@ -42,8 +43,8 @@ function ReviewResults({ results, onAgain, onExit, exitLabel }) {
 }
 
 /** Révision des points réussis (ceux à revoir d'abord), puis son résultat ; « Nouvelle révision » en relance une. */
-export function GrammarReview({ progressMap, applyUpdates, onExit, exitLabel }) {
-  const [run, setRun] = useState(() => ({ id: 1, questions: buildReviewQuiz(progressMap) }))
+export function GrammarReview({ progressMap, applyUpdates, onExit, exitLabel, points = GRAMMAR_POINTS }) {
+  const [run, setRun] = useState(() => ({ id: 1, questions: buildReviewQuiz(progressMap, points) }))
   const [results, setResults] = useState(null)
 
   // Seuls les points dont la révision est due changent : les autres gardent leur prochaine échéance.
@@ -60,7 +61,7 @@ export function GrammarReview({ progressMap, applyUpdates, onExit, exitLabel }) 
 
   function again() {
     setResults(null)
-    setRun(r => ({ id: r.id + 1, questions: buildReviewQuiz(progressMap) }))
+    setRun(r => ({ id: r.id + 1, questions: buildReviewQuiz(progressMap, points) }))
   }
 
   if (results) return <ReviewResults results={results} onAgain={again} onExit={onExit} exitLabel={exitLabel} />
@@ -85,8 +86,9 @@ function LevelTestResult({ passed, total, onExit }) {
   )
 }
 
-export function GrammarPage({ progressMap, applyUpdates, onBack }) {
+export function GrammarPage({ hasPlus, onUpgrade, progressMap, applyUpdates, onBack }) {
   const { t, l, pct } = useLang()
+  const availablePoints = GRAMMAR_POINTS.filter(point => canUseGrammarPoint(point, hasPlus))
   // null : liste ; nombre : index du point ouvert ; 'review' : révision ;
   // { levelTest, questions } : test d'un niveau ; { passed, total } : son résultat
   const [view, setView] = useState(null)
@@ -103,12 +105,12 @@ export function GrammarPage({ progressMap, applyUpdates, onBack }) {
     setView({ passed: updates.length, total: scoreByPoint(results).size })
   }
 
-  if (typeof view === 'number') {
+  if (typeof view === 'number' && canUseGrammarPoint(GRAMMAR_POINTS[view], hasPlus)) {
     return (
       <GrammarPoint
         key={view}
         point={GRAMMAR_POINTS[view]}
-        hasNext={view + 1 < GRAMMAR_POINTS.length}
+        hasNext={view + 1 < GRAMMAR_POINTS.length && canUseGrammarPoint(GRAMMAR_POINTS[view + 1], hasPlus)}
         progressMap={progressMap}
         applyUpdates={applyUpdates}
         onExit={() => setView(null)}
@@ -117,15 +119,15 @@ export function GrammarPage({ progressMap, applyUpdates, onBack }) {
     )
   }
 
-  if (view === 'review') return <GrammarReview progressMap={progressMap} applyUpdates={applyUpdates} onExit={() => setView(null)} />
+  if (view === 'review') return <GrammarReview points={availablePoints} progressMap={progressMap} applyUpdates={applyUpdates} onExit={() => setView(null)} />
   if (view?.levelTest) {
     return <GrammarQuiz key={view.levelTest} questions={view.questions} onExit={() => setView(null)} onFinish={finishLevelTest} />
   }
   if (view?.total !== undefined) return <LevelTestResult passed={view.passed} total={view.total} onExit={() => setView(null)} />
 
   const progresses = GRAMMAR_POINTS.map(p => getPointProgress(progressMap, p))
-  const passed = progresses.filter(isLessonPassed).length
-  const due = progresses.filter(p => p.known && isLessonDue(p)).length
+  const passed = availablePoints.map(p => getPointProgress(progressMap, p)).filter(isLessonPassed).length
+  const due = availablePoints.map(p => getPointProgress(progressMap, p)).filter(p => p.known && isLessonDue(p)).length
 
   return (
     <Screen>
@@ -145,27 +147,28 @@ export function GrammarPage({ progressMap, applyUpdates, onBack }) {
             <ol className="divide-y divide-line overflow-hidden rounded-2xl border border-line bg-card">
               {GRAMMAR_POINTS.map((point, i) => {
                 if (point.level !== level) return null
-                const unlocked = isPointUnlocked(progressMap, i)
+                const paidLocked = !canUseGrammarPoint(point, hasPlus)
+                const unlocked = !paidLocked && isPointUnlocked(progressMap, i)
                 return (
                   <li key={point.id}>
                     <button
                       type="button"
-                      disabled={!unlocked}
-                      onClick={() => setView(i)}
+                      disabled={!paidLocked && !unlocked}
+                      onClick={() => paidLocked ? onUpgrade() : setView(i)}
                       className="flex w-full items-center gap-4 px-4 py-4 text-left transition-colors duration-150 ease-out hover:bg-raised disabled:hover:bg-transparent"
                     >
                       <span className={`w-5 shrink-0 text-right text-[15px] tabular-nums ${unlocked ? 'text-fg-3' : 'text-fg-3/60'}`}>{i + 1}</span>
                       <span className="min-w-0 flex-1">
                         <span className={`block text-base font-medium ${unlocked ? 'text-fg' : 'text-fg-3'}`}>{l(point.title)}</span>
-                        <span className={`mt-0.5 block text-sm ${unlocked ? 'text-fg-2' : 'text-fg-3/70'}`}>{l(point.pattern)}</span>
+                        {!paidLocked && <span className={`mt-0.5 block text-sm ${unlocked ? 'text-fg-2' : 'text-fg-3/70'}`}>{l(point.pattern)}</span>}
                       </span>
-                      <LessonStatus progress={progresses[i]} unlocked={unlocked} />
+                      {paidLocked ? <PlusBadge /> : <LessonStatus progress={progresses[i]} unlocked={unlocked} />}
                     </button>
                   </li>
                 )
               })}
             </ol>
-            {GRAMMAR_POINTS.some((p, i) => p.level === level && !isLessonPassed(progresses[i])) && (
+            {canUseGrammarPoint(GRAMMAR_POINTS.find(p => p.level === level), hasPlus) && GRAMMAR_POINTS.some((p, i) => p.level === level && !isLessonPassed(progresses[i])) && (
               <>
                 <Button
                   variant="secondary"

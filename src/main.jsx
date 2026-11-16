@@ -4,6 +4,7 @@ import './index.css'
 import App from './App.jsx'
 import { sync } from './db/index.js'
 import { registerSW } from 'virtual:pwa-register'
+import { AccessProvider } from './access/AccessContext.jsx'
 
 // Mises a jour : le service worker recharge lui-meme la page quand une nouvelle version s'active (public/sw-reload.js).
 // Une app installee reste ouverte en arriere-plan sans jamais redemarrer : on cherche donc une nouvelle version a
@@ -23,7 +24,9 @@ registerSW({
 sync.start().then(() => {
   createRoot(document.getElementById('root')).render(
     <StrictMode>
-      <App />
+      <AccessProvider>
+        <App />
+      </AccessProvider>
     </StrictMode>,
   )
 })

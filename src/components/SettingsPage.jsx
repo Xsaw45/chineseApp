@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react'
 import { Check, LogOut } from 'lucide-react'
+import { useAccess } from '../access/context.js'
 import { LANGS, LANG_NAMES } from '../i18n/text.js'
 import { useLang } from '../i18n/useLang.js'
 import { Button, Screen, SectionLabel, TopBar } from './ui.jsx'
@@ -16,27 +16,16 @@ const CREDITS = [
   { key: 'settings.credit.fsrs', href: 'https://github.com/open-spaced-repetition/ts-fsrs' },
 ]
 
-/** Compte connecte par e-mail ; null hors ligne. */
-function useEmailAccount() {
-  const [account, setAccount] = useState(null)
-  useEffect(() => {
-    fetch('/api/me')
-      .then(res => (res.ok ? res.json() : null))
-      .then(me => setAccount(me?.method === 'email' ? me : null))
-      .catch(() => {})
-  }, [])
-  return account
-}
 
 async function logout() {
   await fetch('/api/auth/logout', { method: 'POST' })
+  localStorage.removeItem('yidiano.account')
   location.assign('/login/')
 }
 
-export function SettingsPage({ onBack }) {
+export function SettingsPage({ onBack, onOpenPlus, onOpenAdmin }) {
   const { lang, setLang, t } = useLang()
-  const account = useEmailAccount()
-
+  const { account, hasPlus, previewFree, setPreviewFree } = useAccess()
   return (
     <Screen>
       <TopBar onBack={onBack} backLabel={t('nav.back')} title={t('settings.title')} bordered />
@@ -61,6 +50,24 @@ export function SettingsPage({ onBack }) {
             </li>
           ))}
         </ul>
+
+        {account && (
+          <>
+            <SectionLabel className="mt-10">{t('settings.plan')}</SectionLabel>
+            <div className="rounded-2xl border border-line bg-card p-4">
+              <p className="text-base font-medium text-fg">{hasPlus ? t('plus.badge') : t('plus.freePlan')}</p>
+              <p className="mt-1 text-sm text-fg-3">{t(`admin.role.${account.role}`)}</p>
+              {account.role === 'admin' && (
+                <label className="mt-4 flex items-center gap-3 text-sm text-fg-2">
+                  <input type="checkbox" checked={previewFree} onChange={event => setPreviewFree(event.target.checked)} />
+                  {t('settings.previewFree')}
+                </label>
+              )}
+            </div>
+            <Button variant="secondary" className="mt-3" onClick={onOpenPlus}>{t('settings.openPlus')}</Button>
+            {account.role === 'admin' && <Button variant="secondary" className="mt-2" onClick={onOpenAdmin}>{t('settings.admin')}</Button>}
+          </>
+        )}
 
         {account && (
           <>

@@ -1,4 +1,4 @@
-import { ArrowLeft, Check, X } from 'lucide-react'
+import { ArrowLeft, Check, Lock, X } from 'lucide-react'
 import { useLang } from '../i18n/useLang.js'
 import { ICON } from './uiStyles.js'
 
@@ -45,6 +45,24 @@ export function Button({ variant = 'primary', className = '', ...props }) {
     />
   )
 }
+export function PlusBadge({ className = '' }) {
+  const { t } = useLang()
+  return (
+    <span className={`inline-flex items-center gap-1 rounded-full bg-accent/10 px-2 py-1 text-xs font-medium text-accent ${className}`}>
+      <Lock size={12} strokeWidth={2} aria-hidden="true" />{t('plus.badge')}
+    </span>
+  )
+}
+
+export function LockedAction({ onClick, className = '' }) {
+  const { t } = useLang()
+  return (
+    <button type="button" onClick={onClick} className={`inline-flex items-center gap-1.5 text-sm font-medium text-accent ${className}`}>
+      <Lock size={15} strokeWidth={2} aria-hidden="true" />{t('plus.unlock')}
+    </button>
+  )
+}
+
 
 export function ProgressBar({ value, className = '' }) {
   return (

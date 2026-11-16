@@ -32,15 +32,15 @@ function WordRow({ word, showLevel }) {
   )
 }
 
-export function VocabularyPage({ onBack }) {
+export function VocabularyPage({ hasPlus, onUpgrade, onBack }) {
   const { lang, t } = useLang()
   const [selectedLevel, setSelectedLevel] = useState(ALL_LEVELS[0])
   const [query, setQuery] = useState('')
   const searching = query.trim() !== ''
-  const words = useMemo(
-    () => (searching ? searchWords(query, lang) : getWordsForLevel(selectedLevel)),
-    [searching, query, lang, selectedLevel],
-  )
+  const words = useMemo(() => {
+    const found = searching ? searchWords(query, lang) : getWordsForLevel(selectedLevel)
+    return hasPlus ? found : found.filter(word => word.level === 1)
+  }, [searching, query, lang, selectedLevel, hasPlus])
 
   return (
     <Screen>
@@ -75,12 +75,16 @@ export function VocabularyPage({ onBack }) {
           <div className="relative">
             <select
               value={selectedLevel}
-              onChange={e => setSelectedLevel(Number(e.target.value))}
+              onChange={e => {
+                const level = Number(e.target.value)
+                if (!hasPlus && level > 1) onUpgrade()
+                else setSelectedLevel(level)
+              }}
               aria-label={t('vocab.level')}
               className="h-12 w-full appearance-none rounded-[10px] border border-line bg-card px-4 text-base text-fg outline-none transition-colors duration-150 ease-out hover:bg-raised"
             >
               {ALL_LEVELS.map(l => (
-                <option key={l} value={l}>{t('vocab.levelOption', { level: l, n: getWordsForLevel(l).length })}</option>
+                <option key={l} value={l}>{t('vocab.levelOption', { level: l, n: getWordsForLevel(l).length })}{!hasPlus && l > 1 ? ` · ${t('plus.badge')}` : ''}</option>
               ))}
             </select>
             <ChevronDown {...ICON} className="pointer-events-none absolute top-1/2 right-4 -translate-y-1/2 text-fg-3" />

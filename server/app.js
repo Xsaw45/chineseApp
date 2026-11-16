@@ -1,7 +1,8 @@
 import Fastify from 'fastify'
 import fastifyStatic from '@fastify/static'
 import { openDb } from './db.js'
-import { authRoutes, sessionUser } from './auth.js'
+import { authRoutes, normalizeEmail, sessionUser } from './auth.js'
+import { accountUser, ROLES, TRIAL_DURATION } from './access.js'
 
 const APPS = ['zh']
 
@@ -65,6 +66,51 @@ export function buildApp({ dbPath, publicDir, publicUrl, mailer, allowedEmails =
     })
 
     api.get('/me', async (request) => request.user)
+    api.post('/access/trial', async (request, reply) => {
+      if (request.user.access.plus) return reply.code(409).send({ error: 'already_plus' })
+      const now = Date.now()
+      const account = db.accounts.startTrial(request.user.login, now, now + TRIAL_DURATION)
+      if (!account) return reply.code(409).send({ error: 'trial_used' })
+      return accountUser(account, now)
+    })
+
+    api.get('/admin/accounts', async (request, reply) => {
+      if (request.user.role !== 'admin') return reply.code(403).send({ error: 'admin_required' })
+      const now = Date.now()
+      return db.accounts.list().map(account => accountUser(account, now))
+    })
+
+    api.patch('/admin/accounts/:email', {
+      schema: {
+        params: {
+          type: 'object',
+          required: ['email'],
+          properties: { email: { type: 'string', minLength: 3, maxLength: 254 } },
+        },
+        body: {
+          type: 'object',
+          minProperties: 1,
+          additionalProperties: false,
+          properties: {
+            role: { type: 'string', enum: ROLES },
+            plusExpiresAt: { type: ['integer', 'null'], minimum: 0 },
+          },
+        },
+      },
+    }, async (request, reply) => {
+      if (request.user.role !== 'admin') return reply.code(403).send({ error: 'admin_required' })
+      const email = normalizeEmail(request.params.email)
+      if (email === request.user.login && request.body.role && request.body.role !== 'admin') {
+        return reply.code(400).send({ error: 'cannot_demote_self' })
+      }
+      let account = db.accounts.ensure(email)
+      if (request.body.role) account = db.accounts.setRole(email, request.body.role)
+      if (Object.hasOwn(request.body, 'plusExpiresAt')) {
+        account = db.accounts.setPlusExpiresAt(email, request.body.plusExpiresAt)
+      }
+      return accountUser(account)
+    })
+
 
     api.post('/sync/:app', { schema: syncSchema }, async (request, reply) => {
       const { login } = request.user
