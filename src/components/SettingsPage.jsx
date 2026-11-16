@@ -16,7 +16,7 @@ const CREDITS = [
   { key: 'settings.credit.fsrs', href: 'https://github.com/open-spaced-repetition/ts-fsrs' },
 ]
 
-/** Compte connecte par e-mail (acces public) ; null sur l'acces prive Tailscale ou hors ligne. */
+/** Compte connecte par e-mail ; null hors ligne. */
 function useEmailAccount() {
   const [account, setAccount] = useState(null)
   useEffect(() => {

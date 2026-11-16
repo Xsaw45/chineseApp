@@ -63,7 +63,7 @@ export function ModulesHome({ levelStats, progressMap, showPlacement, onStartPla
 
   return (
     <Screen>
-      <TopBar backHref="/" backLabel={t('nav.languages')} aside={settings} />
+      <TopBar aside={settings} />
 
       <div className="px-5 pb-8">
         <header className="pt-4 pb-8">

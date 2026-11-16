@@ -7,7 +7,6 @@ export const STRINGS = {
     'nav.back': 'Retour',
     'nav.quit': 'Quitter',
     'nav.modules': 'Modules',
-    'nav.languages': 'Langues',
     'common.next': 'Suivant',
     'common.seeResult': 'Voir le résultat',
     'common.validate': 'Valider',
@@ -25,7 +24,7 @@ export const STRINGS = {
     'audio.listenDevice': 'Écouter (voix du téléphone)',
     'audio.replay': 'Réécouter',
 
-    'home.title': 'Chinois',
+    'home.title': 'Yidiano',
     'home.subtitle': 'Que veux-tu travailler ?',
     'home.settings': 'Paramètres',
     'onboard.title': 'Dans quelle langue veux-tu apprendre ?',
@@ -261,7 +260,6 @@ export const STRINGS = {
     'nav.back': 'Back',
     'nav.quit': 'Quit',
     'nav.modules': 'Modules',
-    'nav.languages': 'Languages',
     'common.next': 'Next',
     'common.seeResult': 'See result',
     'common.validate': 'Check',
@@ -279,7 +277,7 @@ export const STRINGS = {
     'audio.listenDevice': 'Listen (device voice)',
     'audio.replay': 'Play again',
 
-    'home.title': 'Chinese',
+    'home.title': 'Yidiano',
     'home.subtitle': 'What do you want to practice?',
     'home.settings': 'Settings',
     'onboard.title': 'Which language do you want to learn in?',

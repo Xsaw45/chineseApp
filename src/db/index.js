@@ -1,5 +1,5 @@
 import { openDB } from 'idb'
-import { createSync } from '../../../shared/sync.js'
+import { createSync } from './sync.js'
 
 const DB_NAME = 'hsk-vocab'
 const DB_VERSION = 1

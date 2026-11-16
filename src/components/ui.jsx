@@ -19,7 +19,9 @@ export function TopBar({ onBack, backHref, backLabel, title, aside, bordered = f
   const label = backLabel ?? t('nav.back')
   const back = backHref
     ? <a href={backHref} className={backClass}><ArrowLeft {...ICON} />{label}</a>
-    : <button type="button" onClick={onBack} className={backClass}><ArrowLeft {...ICON} />{label}</button>
+    : onBack
+      ? <button type="button" onClick={onBack} className={backClass}><ArrowLeft {...ICON} />{label}</button>
+      : null
   return (
     <header className={`grid h-14 shrink-0 grid-cols-[1fr_auto_1fr] items-center gap-2 px-5 ${bordered ? 'border-b border-line' : ''}`}>
       <div className="justify-self-start">{back}</div>
