@@ -74,9 +74,11 @@ Pendant la bêta :
 Abonnement, web d'abord, version gratuite et essai de 7 jours, parrainage, entreprise individuelle au régime
 micro-entreprise et paiement Paddle décidés. Nom, domaine et détails : voir [COMMERCIALISATION.md](COMMERCIALISATION.md).
 
-- **Prix** : à fixer (proposition : 7,99 €/mois, 49,99 €/an).
-- **Paiement** : checkout Paddle, webhooks côté serveur, ouverture et fermeture de Yidiano+ selon l'abonnement
-  (l'écran Yidiano+ annonce aujourd'hui « bientôt disponible » après l'essai).
+- **Prix** : 7,99 €/mois et 59,99 €/an TTC (prix Paddle, TVA incluse).
+- **Paiement** : fait en sandbox (server/paddle.js, écran Yidiano+, webhook, espace client), testé de bout en bout
+  avec une carte de test. Reste pour vendre : compte Paddle réel au nom de Yidiano (le sandbox actuel est celui de
+  RoneTrade, nom affiché au paiement), validation du domaine yidiano.com par Paddle (prix, CGV, confidentialité et
+  remboursement visibles sur le site), puis remplacer les 6 variables `PADDLE_*` (dont `PADDLE_ENV=production`).
 - **Bêta-testeurs** : premier mois offert au lancement, puis rôle `user`.
 - **Contenu payant protégé** : servir grammaire, lectures et niveaux HSK 2+ par le serveur, seulement aux comptes
   qui y ont droit (aujourd'hui tout le contenu est dans le code de l'app, le blocage n'est fait que par l'app).
