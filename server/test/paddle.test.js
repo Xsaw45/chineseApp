@@ -72,7 +72,7 @@ test('un abonnement payé ouvre Yidiano+ jusqu a la fin de la période, plus la 
   assert.equal(access.plus, true)
   assert.equal(access.source, 'subscription')
   assert.equal(access.plusExpiresAt, endsAt + GRACE)
-  assert.deepEqual(access.subscription, { status: 'active', cancelAt: null })
+  assert.deepEqual(access.subscription, { status: 'active', cancelAt: null, renewsAt: endsAt })
 })
 
 test('signature fausse ou trop ancienne : rien ne change', async () => {

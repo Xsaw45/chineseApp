@@ -1,3 +1,5 @@
+import { GRACE } from './paddle.js'
+
 export const ROLES = ['admin', 'beta', 'user']
 export const TRIAL_DURATION = 7 * 24 * 3600_000
 
@@ -16,9 +18,16 @@ export function accessFor(account, now = Date.now()) {
     trialStartedAt: account.trial_started_at,
     trialExpiresAt: account.trial_expires_at,
     plusExpiresAt: account.plus_expires_at,
-    // Abonnement Paddle (server/paddle.js) ; cancelAt : résiliation programmée en fin de période.
+    // Abonnement Paddle (server/paddle.js) ; cancelAt : résiliation programmée en fin de période ; renewsAt :
+    // prochain prélèvement (fin de la période payée, sans la marge GRACE ajoutée à plusExpiresAt).
     subscription: account.paddle_subscription_id
-      ? { status: account.paddle_status, cancelAt: account.paddle_cancel_at }
+      ? {
+        status: account.paddle_status,
+        cancelAt: account.paddle_cancel_at,
+        renewsAt: account.paddle_status === 'active' && !account.paddle_cancel_at && account.plus_expires_at
+          ? account.plus_expires_at - GRACE
+          : null,
+      }
       : null,
   }
 }

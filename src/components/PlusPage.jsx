@@ -15,6 +15,12 @@ function dateLabel(timestamp, lang) {
   return new Intl.DateTimeFormat(lang, { day: 'numeric', month: 'long', year: 'numeric' }).format(timestamp)
 }
 
+/** Montant Paddle (unités mineures : centimes pour l'euro) écrit dans la langue de l'app. */
+function priceLabel({ amount, currency }, lang) {
+  const format = new Intl.NumberFormat(lang, { style: 'currency', currency })
+  return format.format(amount / 10 ** format.resolvedOptions().maximumFractionDigits)
+}
+
 export function PlusPage({ onBack }) {
   const { account, startTrial, refresh } = useAccess()
   const { lang, t } = useLang()
@@ -36,11 +42,13 @@ export function PlusPage({ onBack }) {
     ? t('plus.roleAccess', { role: t(`admin.role.${account.role}`).toLowerCase() })
     : subscribed && access.subscription?.cancelAt
       ? t('plus.cancelScheduled', { date: dateLabel(access.subscription.cancelAt, lang) })
-      : subscribed && access.plusExpiresAt > now
-        ? t('plus.subscriptionActive', { date: dateLabel(access.plusExpiresAt, lang) })
-        : access?.source === 'trial' && access.trialExpiresAt > now
-          ? t('plus.trialActive', { date: dateLabel(access.trialExpiresAt, lang) })
-          : t('plus.freePlan')
+      : subscribed && access.subscription?.renewsAt
+        ? t('plus.subscriptionRenews', { date: dateLabel(access.subscription.renewsAt, lang) })
+        : subscribed && access.plusExpiresAt > now
+          ? t('plus.subscriptionActive', { date: dateLabel(access.plusExpiresAt, lang) })
+          : access?.source === 'trial' && access.trialExpiresAt > now
+            ? t('plus.trialActive', { date: dateLabel(access.trialExpiresAt, lang) })
+            : t('plus.freePlan')
 
   useEffect(() => {
     if (!canSubscribe) return
@@ -52,12 +60,13 @@ export function PlusPage({ onBack }) {
         const Paddle = await loadPaddle(config)
         if (!active) return
         setPaddle({ Paddle, config })
-        // Prix affichés par Paddle : devise et TVA du pays de la personne
+        // Prix calculés par Paddle (devise et TVA du pays de la personne), écrits dans la langue de l'app
         const preview = await Paddle.PricePreview({
           items: PLANS.map(name => ({ priceId: config.prices[name], quantity: 1 })),
         })
         if (active) {
-          setPrices(Object.fromEntries(preview.data.details.lineItems.map(item => [item.price.id, item.formattedTotals.total])))
+          const currency = preview.data.currencyCode
+          setPrices(Object.fromEntries(preview.data.details.lineItems.map(item => [item.price.id, { amount: Number(item.totals.total), currency }])))
         }
       })
       .catch(() => {
@@ -150,7 +159,7 @@ export function PlusPage({ onBack }) {
           <div className="mt-8">
             <ul role="radiogroup" aria-label={t('plus.title')} className="grid gap-2">
               {PLANS.map(name => {
-                const price = prices[paddle.config.prices[name]]
+                const price = prices[paddle.config.prices[name]] && priceLabel(prices[paddle.config.prices[name]], lang)
                 return (
                   <li key={name}>
                     <button
