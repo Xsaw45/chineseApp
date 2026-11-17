@@ -64,6 +64,7 @@ test('connexion par code : la session donne acces a la progression de l adresse'
       trialStartedAt: null,
       trialExpiresAt: null,
       plusExpiresAt: null,
+      subscription: null,
     },
   })
   const sync = await app.inject({

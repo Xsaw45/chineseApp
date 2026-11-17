@@ -47,6 +47,16 @@ export function openDb(path) {
       created_at INTEGER NOT NULL
     ) WITHOUT ROWID;
   `)
+  // Abonnement Paddle (server/paddle.js) : colonnes ajoutées aux bases créées avant les paiements.
+  // paddle_event_at : date du dernier événement appliqué (Paddle peut livrer les webhooks dans le désordre).
+  const accountColumns = new Set(db.prepare('PRAGMA table_info(accounts)').all().map(column => column.name))
+  for (const [name, type] of [
+    ['paddle_customer_id', 'TEXT'], ['paddle_subscription_id', 'TEXT'], ['paddle_status', 'TEXT'],
+    ['paddle_cancel_at', 'INTEGER'], ['paddle_event_at', 'INTEGER'],
+  ]) {
+    if (!accountColumns.has(name)) db.exec(`ALTER TABLE accounts ADD COLUMN ${name} ${type}`)
+  }
+  db.exec('CREATE INDEX IF NOT EXISTS accounts_by_paddle_customer ON accounts (paddle_customer_id)')
 
   const currentSeq = db.prepare('SELECT seq FROM counter WHERE id = 1')
   const nextSeq = db.prepare('UPDATE counter SET seq = seq + 1 WHERE id = 1 RETURNING seq')
@@ -92,7 +102,15 @@ export function openDb(path) {
     WHERE email = ? AND trial_started_at IS NULL
     RETURNING *
   `)
-
+  const getAccountByPaddleCustomer = db.prepare('SELECT * FROM accounts WHERE paddle_customer_id = ?')
+  // Un événement plus ancien que le dernier appliqué ne change rien (livraison dans le désordre).
+  const applySubscription = db.prepare(`
+    UPDATE accounts
+    SET paddle_customer_id = ?, paddle_subscription_id = ?, paddle_status = ?, paddle_cancel_at = ?,
+        plus_expires_at = ?, paddle_event_at = ?
+    WHERE email = ? AND (paddle_event_at IS NULL OR paddle_event_at <= ?)
+    RETURNING *
+  `)
 
   const toChange = (row) => ({
     key: row.key,
@@ -169,6 +187,12 @@ export function openDb(path) {
       startTrial(email, now, expiresAt) {
         insertAccount.run(email, now)
         return startTrial.get(now, expiresAt, email) || null
+      },
+      byPaddleCustomer: (customerId) => getAccountByPaddleCustomer.get(customerId) || null,
+      /** Applique un événement d'abonnement Paddle ; null s'il est plus ancien que le dernier appliqué. */
+      applySubscription(email, { customerId, subscriptionId, status, cancelAt, expiresAt, eventAt }, now = Date.now()) {
+        insertAccount.run(email, now)
+        return applySubscription.get(customerId, subscriptionId, status, cancelAt, expiresAt, eventAt, email, eventAt) || null
       },
     },
 

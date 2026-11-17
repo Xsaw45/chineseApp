@@ -1,6 +1,7 @@
 import { buildApp } from './app.js'
 import { createMailer } from './mail.js'
 import { normalizeEmail } from './auth.js'
+import { paddleConfig } from './paddle.js'
 
 const required = (name) => process.env[name] || (console.error(`Variable ${name} manquante`), process.exit(1))
 
@@ -12,6 +13,8 @@ const app = buildApp({
   publicDir: required('PUBLIC_DIR'),
   publicUrl: required('PUBLIC_URL').replace(/\/$/, ''),
   allowedEmails: allowed.length ? new Set(allowed) : null,
+  // PADDLE_* (voir server/paddle.js) ; sans elles, l'abonnement n'est pas proposé.
+  paddle: paddleConfig(process.env),
   mailer: createMailer({
     smtpUrl: process.env.SMTP_URL,
     from: process.env.MAIL_FROM || 'Yidiano <no-reply@localhost>',

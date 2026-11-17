@@ -3,6 +3,7 @@ import fastifyStatic from '@fastify/static'
 import { openDb } from './db.js'
 import { authRoutes, normalizeEmail, sessionUser } from './auth.js'
 import { accountUser, ROLES, TRIAL_DURATION } from './access.js'
+import { portalUrl, subscriptionAccess, verifySignature } from './paddle.js'
 
 const APPS = ['zh']
 
@@ -43,9 +44,10 @@ const HASHED = '/assets/'
 
 /**
  * Connexion par e-mail (server/auth.js). publicUrl : adresse publique (liens des e-mails) ; allowedEmails : Set des
- * adresses invitees, null = toutes.
+ * adresses invitees, null = toutes ; paddle : configuration de paiement (paddleConfig, server/paddle.js), null = pas
+ * d'abonnement en vente.
  */
-export function buildApp({ dbPath, publicDir, publicUrl, mailer, allowedEmails = null, logger = true }) {
+export function buildApp({ dbPath, publicDir, publicUrl, mailer, allowedEmails = null, paddle = null, logger = true }) {
   const app = Fastify({ logger, bodyLimit: 20 * 1024 * 1024 })
   const db = openDb(dbPath)
   app.addHook('onClose', async () => db.close())
@@ -54,8 +56,41 @@ export function buildApp({ dbPath, publicDir, publicUrl, mailer, allowedEmails =
   const quiet = { logLevel: 'warn' }
 
   app.get('/healthz', quiet, async () => ({ ok: true }))
-
   app.register(authRoutes({ db, mailer, publicUrl, allowedEmails }), { prefix: '/api/auth' })
+
+  // Webhook Paddle : sans session, authentifié par la signature du corps brut (d'où le corps gardé en texte).
+  if (paddle) app.register(async (hooks) => {
+    hooks.addContentTypeParser('application/json', { parseAs: 'string' }, (request, body, done) => done(null, body))
+    hooks.post('/webhook', async (request, reply) => {
+      if (!verifySignature(request.body, request.headers['paddle-signature'], paddle.webhookSecret)) {
+        return reply.code(401).send({ error: 'bad_signature' })
+      }
+      const event = JSON.parse(request.body)
+      if (!event.event_type?.startsWith('subscription.')) return { ok: true }
+      const subscription = event.data
+      const eventAt = Date.parse(event.occurred_at)
+      // custom_data.email : l'adresse du compte, passée par l'app à l'ouverture du paiement (src/components/PlusPage.jsx)
+      const account = db.accounts.byPaddleCustomer(subscription.customer_id)
+        || (subscription.custom_data?.email && db.accounts.ensure(normalizeEmail(subscription.custom_data.email)))
+      if (!account) {
+        request.log.warn({ subscription: subscription.id }, 'abonnement Paddle sans compte Yidiano')
+        return { ok: true }
+      }
+      // custom_data vient du navigateur : un autre abonnement ne remplace pas celui, encore actif, du compte.
+      if (account.paddle_subscription_id && account.paddle_subscription_id !== subscription.id
+        && account.plus_expires_at > Date.now() && account.paddle_status !== 'canceled') {
+        request.log.warn({ subscription: subscription.id, email: account.email }, 'second abonnement Paddle ignoré')
+        return { ok: true }
+      }
+      db.accounts.applySubscription(account.email, {
+        customerId: subscription.customer_id,
+        subscriptionId: subscription.id,
+        eventAt,
+        ...subscriptionAccess(subscription, eventAt),
+      })
+      return { ok: true }
+    })
+  }, { prefix: '/api/paddle' })
 
   app.register(async (api) => {
     api.addHook('onRequest', async (request, reply) => {
@@ -72,6 +107,17 @@ export function buildApp({ dbPath, publicDir, publicUrl, mailer, allowedEmails =
       const account = db.accounts.startTrial(request.user.login, now, now + TRIAL_DURATION)
       if (!account) return reply.code(409).send({ error: 'trial_used' })
       return accountUser(account, now)
+    })
+
+    // Paiement : de quoi ouvrir Paddle.js (jeton client, environnement, prix), puis l'espace client Paddle.
+    api.get('/paddle/config', async (request, reply) => {
+      if (!paddle) return reply.code(404).send({ error: 'paddle_disabled' })
+      return { environment: paddle.environment, clientToken: paddle.clientToken, prices: paddle.prices }
+    })
+    api.post('/paddle/portal', async (request, reply) => {
+      const account = db.accounts.get(request.user.login)
+      if (!paddle || !account?.paddle_customer_id) return reply.code(404).send({ error: 'no_subscription' })
+      return { url: await portalUrl(paddle, account.paddle_customer_id, account.paddle_subscription_id) }
     })
 
     api.get('/admin/accounts', async (request, reply) => {

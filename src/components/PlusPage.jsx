@@ -1,29 +1,90 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Check } from 'lucide-react'
 import { useAccess } from '../access/context.js'
+import { fetchPaddleConfig, loadPaddle, onPaddleEvent } from '../access/paddle.js'
 import { useLang } from '../i18n/useLang.js'
 import { Button, Screen, TopBar } from './ui.jsx'
 import { ICON_SM } from './uiStyles.js'
+
+const PLANS = ['yearly', 'monthly']
+// Après le paiement, Paddle prévient le serveur par webhook : on relit le compte jusqu'à voir l'abonnement.
+const POLL_MS = 2000
+const POLL_LIMIT_MS = 30_000
 
 function dateLabel(timestamp, lang) {
   return new Intl.DateTimeFormat(lang, { day: 'numeric', month: 'long', year: 'numeric' }).format(timestamp)
 }
 
 export function PlusPage({ onBack }) {
-  const { account, startTrial } = useAccess()
+  const { account, startTrial, refresh } = useAccess()
   const { lang, t } = useLang()
   const [starting, setStarting] = useState(false)
   const [now] = useState(Date.now)
   const [error, setError] = useState(false)
+  // undefined : en cours de lecture ; null : abonnement pas encore en vente
+  const [paddle, setPaddle] = useState(undefined)
+  const [prices, setPrices] = useState({})
+  const [plan, setPlan] = useState('yearly')
+  // idle | opening | activating | slow | error
+  const [checkout, setCheckout] = useState('idle')
+  const [portal, setPortal] = useState('idle')
   const access = account?.access
+  const subscribed = access?.source === 'subscription'
+  const canSubscribe = account?.role === 'user' && !subscribed
 
   const status = account?.role === 'admin' || account?.role === 'beta'
     ? t('plus.roleAccess', { role: t(`admin.role.${account.role}`).toLowerCase() })
-    : access?.source === 'trial' && access.trialExpiresAt > now
-      ? t('plus.trialActive', { date: dateLabel(access.trialExpiresAt, lang) })
-      : access?.source === 'subscription' && access.plusExpiresAt > now
+    : subscribed && access.subscription?.cancelAt
+      ? t('plus.cancelScheduled', { date: dateLabel(access.subscription.cancelAt, lang) })
+      : subscribed && access.plusExpiresAt > now
         ? t('plus.subscriptionActive', { date: dateLabel(access.plusExpiresAt, lang) })
-        : t('plus.freePlan')
+        : access?.source === 'trial' && access.trialExpiresAt > now
+          ? t('plus.trialActive', { date: dateLabel(access.trialExpiresAt, lang) })
+          : t('plus.freePlan')
+
+  useEffect(() => {
+    if (!canSubscribe) return
+    let active = true
+    fetchPaddleConfig()
+      .then(async config => {
+        if (!active) return
+        if (!config) return setPaddle(null)
+        const Paddle = await loadPaddle(config)
+        if (!active) return
+        setPaddle({ Paddle, config })
+        // Prix affichés par Paddle : devise et TVA du pays de la personne
+        const preview = await Paddle.PricePreview({
+          items: PLANS.map(name => ({ priceId: config.prices[name], quantity: 1 })),
+        })
+        if (active) {
+          setPrices(Object.fromEntries(preview.data.details.lineItems.map(item => [item.price.id, item.formattedTotals.total])))
+        }
+      })
+      .catch(() => {
+        if (active) setPaddle(current => current ?? null)
+      })
+    return () => { active = false }
+  }, [canSubscribe])
+
+  useEffect(() => onPaddleEvent(event => {
+    if (event.name === 'checkout.loaded') setCheckout('idle')
+    if (event.name === 'checkout.completed') setCheckout('activating')
+  }), [])
+
+  useEffect(() => {
+    if (checkout !== 'activating') return
+    // Abonnement visible : le paiement Paddle (encore ouvert sur son écran de succès) se ferme.
+    if (subscribed) {
+      paddle?.Paddle.Checkout.close()
+      return
+    }
+    const poll = setInterval(refresh, POLL_MS)
+    const giveUp = setTimeout(() => setCheckout('slow'), POLL_LIMIT_MS)
+    return () => {
+      clearInterval(poll)
+      clearTimeout(giveUp)
+    }
+  }, [checkout, subscribed, refresh, paddle])
 
   async function activateTrial() {
     setStarting(true)
@@ -34,6 +95,32 @@ export function PlusPage({ onBack }) {
       setError(true)
     } finally {
       setStarting(false)
+    }
+  }
+
+  function subscribe() {
+    setCheckout('opening')
+    try {
+      paddle.Paddle.Checkout.open({
+        items: [{ priceId: paddle.config.prices[plan], quantity: 1 }],
+        customer: { email: account.login },
+        // relie l'abonnement au compte dans le webhook (server/app.js)
+        customData: { email: account.login },
+        settings: { displayMode: 'overlay', locale: lang, theme: 'dark', allowLogout: false },
+      })
+    } catch {
+      setCheckout('error')
+    }
+  }
+
+  async function openPortal() {
+    setPortal('opening')
+    try {
+      const response = await fetch('/api/paddle/portal', { method: 'POST' })
+      if (!response.ok) throw new Error(`Espace client indisponible (${response.status})`)
+      location.assign((await response.json()).url)
+    } catch {
+      setPortal('error')
     }
   }
 
@@ -59,15 +146,56 @@ export function PlusPage({ onBack }) {
           </section>
         </div>
 
-        {access?.trialAvailable && account?.role === 'user' && !access.plus ? (
+        {canSubscribe && paddle && (
           <div className="mt-8">
-            <Button onClick={activateTrial} disabled={starting}>{t(starting ? 'plus.starting' : 'plus.startTrial')}</Button>
+            <ul role="radiogroup" aria-label={t('plus.title')} className="grid gap-2">
+              {PLANS.map(name => {
+                const price = prices[paddle.config.prices[name]]
+                return (
+                  <li key={name}>
+                    <button
+                      type="button"
+                      role="radio"
+                      aria-checked={plan === name}
+                      onClick={() => setPlan(name)}
+                      className={`flex h-14 w-full items-center justify-between rounded-2xl border bg-card px-4 text-left transition-colors duration-150 ease-out ${plan === name ? 'border-accent' : 'border-line hover:bg-raised'}`}
+                    >
+                      <span className="text-base font-medium text-fg">{t(`plus.${name}`)}</span>
+                      {price && <span className="text-[15px] text-fg-2">{t(name === 'yearly' ? 'plus.perYear' : 'plus.perMonth', { price })}</span>}
+                    </button>
+                  </li>
+                )
+              })}
+            </ul>
+            <Button className="mt-4" onClick={subscribe} disabled={checkout === 'opening' || checkout === 'activating'}>
+              {t(checkout === 'opening' ? 'plus.opening' : 'plus.subscribe')}
+            </Button>
+            <p className="mt-3 text-center text-sm text-fg-3">{t('plus.noCommitment')}</p>
+          </div>
+        )}
+        {checkout === 'activating' && !subscribed && <p role="status" className="mt-3 text-center text-[15px] text-fg-2">{t('plus.activating')}</p>}
+        {checkout === 'slow' && !subscribed && <p role="status" className="mt-3 text-center text-[15px] text-fg-2">{t('plus.activationSlow')}</p>}
+        {checkout === 'error' && <p role="alert" className="mt-3 text-center text-sm text-bad">{t('plus.paymentError')}</p>}
+
+        {access?.trialAvailable && canSubscribe && !access.plus && (
+          <div className="mt-6">
+            <Button variant={paddle ? 'secondary' : 'primary'} onClick={activateTrial} disabled={starting}>
+              {t(starting ? 'plus.starting' : 'plus.startTrial')}
+            </Button>
             <p className="mt-3 text-center text-sm text-fg-3">{t('plus.noCard')}</p>
             {error && <p role="alert" className="mt-2 text-center text-sm text-bad">{t('plus.error')}</p>}
           </div>
-        ) : account?.role === 'user' && !access?.plus ? (
+        )}
+        {canSubscribe && paddle === null && !access?.trialAvailable && !access?.plus && (
           <p className="mt-8 text-center text-[15px] text-fg-2">{t('plus.availableSoon')}</p>
-        ) : null}
+        )}
+
+        {access?.subscription && (
+          <div className="mt-8">
+            <Button variant="secondary" onClick={openPortal} disabled={portal === 'opening'}>{t('plus.manage')}</Button>
+            {portal === 'error' && <p role="alert" className="mt-2 text-center text-sm text-bad">{t('plus.manageError')}</p>}
+          </div>
+        )}
       </div>
     </Screen>
   )
