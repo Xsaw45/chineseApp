@@ -66,8 +66,8 @@ Pendant la bêta :
   réinstaller) et le lien du formulaire d'avis.
 - Recruter quelques testeurs de plus (rôle `beta` depuis la page Admin) et suivre leurs retours.
 - Relecture par un locuteur natif (voir « Secondaire »).
-- Page de présentation avec liste d'attente (adresse e-mail pour être prévenu du lancement).
-- Mesure d'usage minimale (voir « Mesure d'audience »), puis vidéo de présentation une fois l'interface stabilisée.
+- Page de présentation publiée avec prix, captures réelles et liens légaux ; les inscriptions restent sur invitation.
+- Vidéo de présentation montée ; reste la mesure d'usage minimale (voir « Mesure d'audience »).
 
 ## Avant de vendre
 
@@ -76,21 +76,21 @@ micro-entreprise et paiement Paddle décidés. Nom, domaine et détails : voir [
 
 - **Prix** : 7,99 €/mois et 59,99 €/an TTC (prix Paddle, TVA incluse).
 - **Paiement** : fait en sandbox (server/paddle.js, écran Yidiano+, webhook, espace client), testé de bout en bout
-  avec une carte de test. Reste pour vendre : compte Paddle réel au nom de Yidiano (le sandbox actuel est celui de
-  RoneTrade, nom affiché au paiement), validation du domaine yidiano.com par Paddle (prix, CGV, confidentialité et
-  remboursement visibles sur le site), puis remplacer les 6 variables `PADDLE_*` (dont `PADDLE_ENV=production`).
+  avec une carte de test. Les prix et pages légales sont visibles sur yidiano.com. Reste pour vendre : compte Paddle
+  réel au nom de Yidiano (le sandbox actuel est celui de RoneTrade), validation du domaine par Paddle, puis remplacement
+  des 6 variables `PADDLE_*` (dont `PADDLE_ENV=production`).
 - **Bêta-testeurs** : premier mois offert au lancement, puis rôle `user`.
-- **Contenu payant protégé** : servir grammaire, lectures et niveaux HSK 2+ par le serveur, seulement aux comptes
-  qui y ont droit (aujourd'hui tout le contenu est dans le code de l'app, le blocage n'est fait que par l'app).
+- **Contenu payant protégé** : fait pour la grammaire, les lectures et les niveaux HSK 2+ ; ils sont servis par
+  `/api/content` aux seuls comptes autorisés et ne sont plus lisibles dans le code de l'app.
 - **Inscriptions ouvertes** : retirer la liste d'invités (`AUTH_ALLOWED_EMAILS`) une fois le paiement en place.
 - **Comptes** : connexion par e-mail faite ; restent Google, puis Apple.
-- **E-mails** : envoi depuis no-reply@yidiano.com (Brevo, domaine authentifié) au lieu du Gmail personnel.
-- **Légal** : immatriculation de la micro-entreprise, mentions légales, CGV / CGU (renonciation au délai de
-  rétractation), politique de confidentialité (RGPD), suppression du compte et de ses données, médiateur de la
-  consommation.
+- **E-mails** : fait depuis no-reply@yidiano.com via Brevo, domaine authentifié.
+- **Légal** : immatriculation, mentions légales, conditions d'utilisation et de vente, confidentialité, remboursement
+  sous 14 jours et suppression du compte sont en ligne. Restent l'adhésion à un médiateur de la consommation et la
+  relecture des textes par un juriste.
 - **Marque et domaines** : vérifier « Yidiano » à l'INPI et à l'EUIPO ; décider de yidiano.app et yidiano.fr.
-- **Produit** : objectif par jour au premier lancement, parrainage (filleul 14 jours d'essai, parrain 1 mois offert),
-  captures pour la page de présentation.
+- **Produit** : objectif par jour au premier lancement et parrainage (filleul 14 jours d'essai, parrain 1 mois offert).
+  Les captures de la page de présentation sont faites.
 - **Technique** : découper le chargement (3,4 Mo d'un bloc ; niveaux HSK chargés à l'ouverture) ; tests sur vrais
   iPhone et Android (son, encoche, hors ligne).
 - **Distribution** : PWA sur le web, puis Play Store (TWA) et App Store (Capacitor) avec achats intégrés.

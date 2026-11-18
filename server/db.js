@@ -111,6 +111,9 @@ export function openDb(path) {
     WHERE email = ? AND (paddle_event_at IS NULL OR paddle_event_at <= ?)
     RETURNING *
   `)
+  // Suppression d'un compte (RGPD) : progression, sessions, demande de connexion et compte.
+  const deleteStatements = ['records WHERE user = ?', 'sessions WHERE email = ?', 'login_requests WHERE email = ?',
+    'accounts WHERE email = ?'].map(target => db.prepare(`DELETE FROM ${target}`))
 
   const toChange = (row) => ({
     key: row.key,
@@ -193,6 +196,17 @@ export function openDb(path) {
       applySubscription(email, { customerId, subscriptionId, status, cancelAt, expiresAt, eventAt }, now = Date.now()) {
         insertAccount.run(email, now)
         return applySubscription.get(customerId, subscriptionId, status, cancelAt, expiresAt, eventAt, email, eventAt) || null
+      },
+      /** Efface tout ce qui concerne l'adresse (progression comprise), en une transaction. */
+      delete(email) {
+        db.exec('BEGIN IMMEDIATE')
+        try {
+          for (const statement of deleteStatements) statement.run(email)
+          db.exec('COMMIT')
+        } catch (err) {
+          db.exec('ROLLBACK')
+          throw err
+        }
       },
     },
 

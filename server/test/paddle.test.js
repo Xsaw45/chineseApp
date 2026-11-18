@@ -4,6 +4,7 @@ import { createHmac } from 'node:crypto'
 import { mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+import { DatabaseSync } from 'node:sqlite'
 import { buildApp } from '../app.js'
 import { GRACE } from '../paddle.js'
 
@@ -112,6 +113,13 @@ test('un second abonnement d un autre client ne remplace pas l abonnement actif 
   const { access } = await me(cookie)
   assert.equal(access.plus, true)
   assert.equal(access.subscription.status, 'active')
+})
+
+test('la fin d abonnement d un compte supprimé ne recrée pas le compte', async () => {
+  await webhook(subscriptionEvent('subscription.canceled', { occurredAt: Date.now(), status: 'canceled', email: 'gone@x.fr' }))
+  const db = new DatabaseSync(join(dir, 'test.db'), { readOnly: true })
+  assert.equal(db.prepare("SELECT count(*) AS n FROM accounts WHERE email = 'gone@x.fr'").get().n, 0)
+  db.close()
 })
 
 test('configuration du paiement : réservée aux comptes connectés, sans le secret', async () => {

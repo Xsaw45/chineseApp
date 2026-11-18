@@ -175,3 +175,38 @@ test('la page de connexion est servie sans session', async () => {
   writeFileSync(join(dir, 'login', 'index.html'), '<!doctype html>')
   assert.equal((await app.inject({ url: '/login/' })).statusCode, 200)
 })
+
+test('contenu Yidiano+ : refusé à la formule gratuite, servi pendant l essai', async () => {
+  const cookie = await signIn('a@x.fr')
+  assert.equal((await app.inject({ url: '/api/content', headers: { cookie } })).statusCode, 403)
+
+  await post('/api/access/trial', {}, cookie)
+  const res = await app.inject({ url: '/api/content', headers: { cookie } })
+  assert.equal(res.statusCode, 200)
+  const { version, grammar, readings } = res.json()
+  assert.match(version, /^[0-9a-f]{16}$/)
+  assert.ok(grammar.length > 0 && grammar.every(point => point.level > 1 && point.explanation))
+  assert.ok(readings.length > 0 && readings.every(reading => reading.lines?.length && !['jieshao', 'fanguan'].includes(reading.id)))
+})
+
+test('suppression du compte : confirmation par l adresse, puis progression et sessions effacées', async () => {
+  const cookie = await signIn('a@x.fr')
+  await app.inject({
+    method: 'POST', url: '/api/sync/zh', headers: { cookie },
+    payload: { user: null, since: 0, changes: [{ key: 'hsk1_0001', value: { s: 1 }, updatedAt: 10 }] },
+  })
+  const del = (email) => app.inject({ method: 'DELETE', url: '/api/account', headers: { cookie }, payload: { email } })
+
+  assert.equal((await del('b@x.fr')).statusCode, 400)
+  const res = await del('A@x.fr')
+  assert.equal(res.statusCode, 200)
+  assert.match(res.headers['set-cookie'], /Max-Age=0/)
+  assert.equal((await app.inject({ url: '/api/me', headers: { cookie } })).statusCode, 401)
+
+  const again = await signIn('a@x.fr')
+  const sync = await app.inject({
+    method: 'POST', url: '/api/sync/zh', headers: { cookie: again }, payload: { user: null, since: 0, changes: [] },
+  })
+  assert.deepEqual(sync.json().changes, [])
+  assert.equal((await app.inject({ url: '/api/me', headers: { cookie: again } })).json().access.trialAvailable, true)
+})

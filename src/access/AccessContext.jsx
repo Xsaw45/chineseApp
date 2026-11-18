@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { AccessContext } from './context.js'
+import { clearPlusContent, syncPlusContent } from '../content/plus.js'
 
 const CACHE_KEY = 'yidiano.account'
 
@@ -58,6 +59,13 @@ export function AccessProvider({ children }) {
       })
     return () => { active = false }
   }, [storeAccount])
+
+  // Grammaire et lectures Yidiano+ (src/content/plus.js) : téléchargées pour un compte qui y a droit, effacées sinon.
+  const plusAllowed = account ? Boolean(account.access?.plus) : null
+  useEffect(() => {
+    if (plusAllowed === true) syncPlusContent().catch(() => {})
+    if (plusAllowed === false) clearPlusContent()
+  }, [plusAllowed])
 
   const startTrial = useCallback(async () => {
     const response = await fetch('/api/access/trial', { method: 'POST' })

@@ -1,9 +1,10 @@
 import Fastify from 'fastify'
 import fastifyStatic from '@fastify/static'
 import { openDb } from './db.js'
-import { authRoutes, normalizeEmail, sessionUser } from './auth.js'
+import { authRoutes, expiredSessionCookie, normalizeEmail, sessionUser } from './auth.js'
 import { accountUser, ROLES, TRIAL_DURATION } from './access.js'
-import { portalUrl, subscriptionAccess, verifySignature } from './paddle.js'
+import { cancelSubscription, portalUrl, subscriptionAccess, verifySignature } from './paddle.js'
+import { splitContent } from '../content/split.js'
 
 const APPS = ['zh']
 
@@ -50,6 +51,8 @@ const HASHED = '/assets/'
 export function buildApp({ dbPath, publicDir, publicUrl, mailer, allowedEmails = null, paddle = null, logger = true }) {
   const app = Fastify({ logger, bodyLimit: 20 * 1024 * 1024 })
   const db = openDb(dbPath)
+  // Grammaire et lectures Yidiano+ : hors du code de l'app, servies ici aux seuls comptes qui y ont droit.
+  const content = splitContent()
   app.addHook('onClose', async () => db.close())
 
   // Requetes journalisees seulement en cas d'erreur (sync toutes les minutes par appareil, healthcheck)
@@ -69,9 +72,11 @@ export function buildApp({ dbPath, publicDir, publicUrl, mailer, allowedEmails =
       if (!event.event_type?.startsWith('subscription.')) return { ok: true }
       const subscription = event.data
       const eventAt = Date.parse(event.occurred_at)
-      // custom_data.email : l'adresse du compte, passée par l'app à l'ouverture du paiement (src/components/PlusPage.jsx)
+      // custom_data.email : l'adresse du compte, passée par l'app à l'ouverture du paiement (src/components/PlusPage.jsx).
+      // Un compte n'est créé que pour un abonnement en cours, jamais par l'annonce de fin d'un compte supprimé.
+      const email = subscription.custom_data?.email && normalizeEmail(subscription.custom_data.email)
       const account = db.accounts.byPaddleCustomer(subscription.customer_id)
-        || (subscription.custom_data?.email && db.accounts.ensure(normalizeEmail(subscription.custom_data.email)))
+        || (email && (db.accounts.get(email) || (subscription.status === 'active' ? db.accounts.ensure(email) : null)))
       if (!account) {
         request.log.warn({ subscription: subscription.id }, 'abonnement Paddle sans compte Yidiano')
         return { ok: true }
@@ -107,6 +112,34 @@ export function buildApp({ dbPath, publicDir, publicUrl, mailer, allowedEmails =
       const account = db.accounts.startTrial(request.user.login, now, now + TRIAL_DURATION)
       if (!account) return reply.code(409).send({ error: 'trial_used' })
       return accountUser(account, now)
+    })
+
+    api.get('/content', async (request, reply) => {
+      if (!request.user.access.plus) return reply.code(403).send({ error: 'plus_required' })
+      reply.header('cache-control', 'private, no-store')
+      return { version: content.version, ...content.plus }
+    })
+
+    // Suppression du compte (RGPD) : email = l'adresse retapée pour confirmer. Un abonnement en cours est résilié
+    // d'abord chez Paddle ; s'il ne peut pas l'être, rien n'est supprimé.
+    api.delete('/account', {
+      schema: {
+        body: {
+          type: 'object', required: ['email'], additionalProperties: false,
+          properties: { email: { type: 'string', maxLength: 254 } },
+        },
+      },
+    }, async (request, reply) => {
+      const email = request.user.login
+      if (normalizeEmail(request.body.email) !== email) return reply.code(400).send({ error: 'email_mismatch' })
+      const account = db.accounts.get(email)
+      if (account?.paddle_subscription_id && account.paddle_status !== 'canceled') {
+        if (!paddle) return reply.code(503).send({ error: 'subscription_cancel_unavailable' })
+        await cancelSubscription(paddle, account.paddle_subscription_id)
+      }
+      db.accounts.delete(email)
+      request.log.info('compte supprimé')
+      return reply.header('set-cookie', expiredSessionCookie(publicUrl)).send({ ok: true })
     })
 
     // Paiement : de quoi ouvrir Paddle.js (jeton client, environnement, prix), puis l'espace client Paddle.

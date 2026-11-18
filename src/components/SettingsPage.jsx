@@ -1,5 +1,8 @@
-import { Check, LogOut } from 'lucide-react'
+import { useState } from 'react'
+import { Check, LogOut, Trash2 } from 'lucide-react'
 import { useAccess } from '../access/context.js'
+import { clearPlusContent } from '../content/plus.js'
+import { wipeLocalProgress } from '../db/index.js'
 import { LANGS, LANG_NAMES } from '../i18n/text.js'
 import { useLang } from '../i18n/useLang.js'
 import { Button, Screen, SectionLabel, TopBar } from './ui.jsx'
@@ -16,11 +19,69 @@ const CREDITS = [
   { key: 'settings.credit.fsrs', href: 'https://github.com/open-spaced-repetition/ts-fsrs' },
 ]
 
+const LEGAL = [
+  { key: 'settings.legalNotices', href: '/legal/mentions-legales.html' },
+  { key: 'settings.legalTerms', href: '/legal/conditions.html' },
+  { key: 'settings.legalPrivacy', href: '/legal/confidentialite.html' },
+  { key: 'settings.legalRefunds', href: '/legal/remboursement.html' },
+]
+
 
 async function logout() {
   await fetch('/api/auth/logout', { method: 'POST' })
   localStorage.removeItem('yidiano.account')
+  clearPlusContent()
   location.assign('/login/')
+}
+
+/** Suppression définitive du compte (RGPD) : l'adresse retapée confirme ; un abonnement en cours est résilié. */
+function DeleteAccount({ email }) {
+  const { t } = useLang()
+  const [open, setOpen] = useState(false)
+  const [typed, setTyped] = useState('')
+  const [state, setState] = useState('idle')
+  const matches = typed.trim().toLowerCase() === email
+
+  async function remove() {
+    setState('deleting')
+    try {
+      const response = await fetch('/api/account', {
+        method: 'DELETE',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ email: typed }),
+      })
+      if (!response.ok) throw new Error(`Suppression refusée (${response.status})`)
+      await wipeLocalProgress()
+      localStorage.clear()
+      location.assign('/')
+    } catch {
+      setState('error')
+    }
+  }
+
+  if (!open) {
+    return <Button variant="secondary" className="mt-2" onClick={() => setOpen(true)}><Trash2 {...ICON} />{t('settings.delete')}</Button>
+  }
+  return (
+    <div className="mt-3 rounded-2xl border border-bad/40 bg-card p-4">
+      <p className="text-[15px] leading-relaxed text-fg-2">{t('settings.deleteWarning')}</p>
+      <label className="mt-4 block text-sm text-fg-2">
+        {t('settings.deleteConfirm')}
+        <input
+          type="email"
+          value={typed}
+          onChange={event => setTyped(event.target.value)}
+          autoComplete="off"
+          className="mt-2 h-12 w-full rounded-[10px] border border-line bg-raised px-4 text-base text-fg outline-none focus:border-line-2"
+        />
+      </label>
+      <div className="mt-4 grid grid-cols-2 gap-2">
+        <Button variant="secondary" onClick={() => setOpen(false)}>{t('settings.deleteCancel')}</Button>
+        <Button onClick={remove} disabled={!matches || state === 'deleting'}>{t(state === 'deleting' ? 'settings.deleting' : 'settings.deleteFinal')}</Button>
+      </div>
+      {state === 'error' && <p role="alert" className="mt-3 text-sm text-bad">{t('settings.deleteError')}</p>}
+    </div>
+  )
 }
 
 export function SettingsPage({ onBack, onOpenPlus, onOpenAdmin }) {
@@ -74,8 +135,20 @@ export function SettingsPage({ onBack, onOpenPlus, onOpenAdmin }) {
             <SectionLabel className="mt-10">{t('settings.account')}</SectionLabel>
             <p className="mb-3 break-all text-[15px] text-fg">{account.login}</p>
             <Button variant="secondary" onClick={logout}><LogOut {...ICON} />{t('settings.logout')}</Button>
+            <DeleteAccount email={account.login} />
           </>
         )}
+
+        <SectionLabel className="mt-10">{t('settings.legal')}</SectionLabel>
+        <ul className="flex flex-col gap-2 text-sm text-fg-2">
+          {LEGAL.map(item => (
+            <li key={item.key}>
+              <a href={item.href} target="_blank" rel="noreferrer" className="underline decoration-line-2 underline-offset-2 hover:text-fg">
+                {t(item.key)}
+              </a>
+            </li>
+          ))}
+        </ul>
 
         <SectionLabel className="mt-10">{t('settings.credits')}</SectionLabel>
         <p className="mb-3 text-sm text-fg-3">{t('settings.creditsIntro')}</p>

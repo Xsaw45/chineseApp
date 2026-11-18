@@ -180,6 +180,14 @@ export function PlusPage({ onBack }) {
               {t(checkout === 'opening' ? 'plus.opening' : 'plus.subscribe')}
             </Button>
             <p className="mt-3 text-center text-sm text-fg-3">{t('plus.noCommitment')}</p>
+            <p className="mt-2 text-center text-sm text-fg-3">
+              {t('plus.legalIntro')}{' '}
+              <a className="underline decoration-line-2 underline-offset-2 hover:text-fg" href="/legal/conditions.html" target="_blank" rel="noreferrer">{t('settings.legalTerms')}</a>
+              {' · '}
+              <a className="underline decoration-line-2 underline-offset-2 hover:text-fg" href="/legal/confidentialite.html" target="_blank" rel="noreferrer">{t('settings.legalPrivacy')}</a>
+              {' · '}
+              <a className="underline decoration-line-2 underline-offset-2 hover:text-fg" href="/legal/remboursement.html" target="_blank" rel="noreferrer">{t('settings.legalRefunds')}</a>
+            </p>
           </div>
         )}
         {checkout === 'activating' && !subscribed && <p role="status" className="mt-3 text-center text-[15px] text-fg-2">{t('plus.activating')}</p>}

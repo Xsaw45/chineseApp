@@ -1,6 +1,6 @@
 import manifest from '../data/audio.json'
 import tts from '../data/ttsAudio.json'
-import { DEFAULT_VOICE, ttsFile } from '../data/voices.js'
+import { DEFAULT_VOICE, ttsFile, ttsKey } from '../data/voices.js'
 import { splitPinyin, toNumeric } from './pinyin.js'
 
 // Enregistrements humains (scripts/fetch-audio.js) : syllabes aux tons 1-4, mots HSK enregistrés.
@@ -15,7 +15,7 @@ export const recordedWordSrc = hanzi => (WORDS.has(hanzi) ? `${BASE}words/${enco
 
 /** Texte synthétisé, dit par la voix demandée si elle l'a été, sinon par une autre ; null s'il n'existe pas. */
 export function ttsSrc(text, voice = DEFAULT_VOICE) {
-  const voices = tts[text]
+  const voices = tts[ttsKey(text)]
   if (!voices) return null
   return `${BASE}tts/${ttsFile(text, voices.includes(voice) ? voice : voices[0])}`
 }

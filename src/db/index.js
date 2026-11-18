@@ -81,3 +81,13 @@ export async function clearAllProgress() {
   await db.clear(STORE)
   sync.track(keys.map(key => ({ key, value: null })))
 }
+
+/** Compte supprimé : la progression de l'appareil est effacée sans être envoyée au serveur. */
+export async function wipeLocalProgress() {
+  if (dbPromise) (await dbPromise).close()
+  dbPromise = null
+  await new Promise(resolve => {
+    const request = indexedDB.deleteDatabase(DB_NAME)
+    request.onsuccess = request.onerror = request.onblocked = resolve
+  })
+}

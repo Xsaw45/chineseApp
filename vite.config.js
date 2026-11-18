@@ -3,6 +3,23 @@ import { fileURLToPath } from 'node:url'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import { VitePWA } from 'vite-plugin-pwa'
+import { splitContent } from './content/split.js'
+
+// Grammaire et lectures (content/) : seul le contenu gratuit et le résumé des éléments Yidiano+ entrent dans l'app
+// (module virtual:yidiano-content, lu par src/content/plus.js). Après une modification de content/, relancer le
+// serveur de développement.
+function yidianoContent() {
+  const id = 'virtual:yidiano-content'
+  return {
+    name: 'yidiano-content',
+    resolveId: source => (source === id ? `\0${id}` : null),
+    load(resolved) {
+      if (resolved !== `\0${id}`) return null
+      const { version, client } = splitContent()
+      return `export const PLUS_VERSION = ${JSON.stringify(version)}\nexport const CLIENT_CONTENT = ${JSON.stringify(client)}\n`
+    },
+  }
+}
 
 // App servie a la racine de yidiano.com par server/ ; le manifeste PWA est genere ici.
 // landing.html : page de presentation servie a la place de l'app aux visiteurs sans session (server/app.js).
@@ -13,10 +30,15 @@ export default defineConfig({
       input: {
         app: fileURLToPath(new URL('./index.html', import.meta.url)),
         landing: fileURLToPath(new URL('./landing.html', import.meta.url)),
+        legalNotices: fileURLToPath(new URL('./legal/mentions-legales.html', import.meta.url)),
+        legalTerms: fileURLToPath(new URL('./legal/conditions.html', import.meta.url)),
+        legalPrivacy: fileURLToPath(new URL('./legal/confidentialite.html', import.meta.url)),
+        legalRefunds: fileURLToPath(new URL('./legal/remboursement.html', import.meta.url)),
       },
     },
   },
   plugins: [
+    yidianoContent(),
     react(),
     tailwindcss(),
     VitePWA({

@@ -38,6 +38,10 @@ export function sessionUser(request, db) {
   return email ? accountUser(db.accounts.ensure(email, now), now) : null
 }
 
+/** Cookie qui efface la session dans le navigateur (déconnexion, suppression du compte). */
+export const expiredSessionCookie = (publicUrl) =>
+  `${SESSION_COOKIE}=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0${publicUrl.startsWith('https:') ? '; Secure' : ''}`
+
 const emailSchema = { type: 'string', minLength: 3, maxLength: 254, pattern: '^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$' }
 
 /** Routes /api/auth/* : demande de connexion, verification (lien ou code), deconnexion. */
@@ -135,7 +139,7 @@ export function authRoutes({ db, mailer, publicUrl, allowedEmails }) {
     api.post('/logout', async (request, reply) => {
       const token = readCookie(request, SESSION_COOKIE)
       if (token) db.auth.deleteSession(hash(token))
-      reply.header('set-cookie', `${SESSION_COOKIE}=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0${secure ? '; Secure' : ''}`)
+      reply.header('set-cookie', expiredSessionCookie(publicUrl))
       return { ok: true }
     })
   }

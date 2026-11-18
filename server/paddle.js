@@ -69,3 +69,14 @@ export async function portalUrl(config, customerId, subscriptionId) {
   const { data } = await response.json()
   return data.urls.general.overview
 }
+
+/** Résilie l'abonnement tout de suite (suppression du compte) : plus aucun prélèvement. */
+export async function cancelSubscription(config, subscriptionId) {
+  const response = await fetch(`${config.apiUrl}/subscriptions/${encodeURIComponent(subscriptionId)}/cancel`, {
+    method: 'POST',
+    headers: { authorization: `Bearer ${config.apiKey}`, 'content-type': 'application/json' },
+    body: JSON.stringify({ effective_from: 'immediately' }),
+  })
+  // déjà résilié : rien à faire
+  if (!response.ok && response.status !== 400) throw new Error(`Paddle cancel : ${response.status} ${await response.text()}`)
+}

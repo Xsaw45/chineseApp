@@ -1,6 +1,6 @@
 /**
  * Enregistre avec Google Cloud Text-to-Speech (voix Chirp 3 HD, src/data/voices.js) ce qui n'a pas d'enregistrement
- * humain : public/audio/tts/<voix>-<empreinte>.mp3 et src/data/ttsAudio.json ({ texte: [voix] }).
+ * humain : public/audio/tts/<voix>-<empreinte>.mp3 et src/data/ttsAudio.json ({ ttsKey(texte): [voix] }).
  *   - phrases : exemples et exercices de grammaire, exemples des classificateurs, textes et dialogues de lecture
  *     (chaque personnage avec sa voix) ;
  *   - caractères sans syllabe enregistrée, prononcés dans un mot qui fixe leur lecture ;
@@ -18,11 +18,12 @@ import { dirname, join } from 'path'
 import { env, exit } from 'process'
 import { setTimeout as sleep } from 'timers/promises'
 import { fileURLToPath } from 'url'
-import { GRAMMAR_POINTS } from '../src/data/grammar.js'
+import { GRAMMAR_POINTS } from '../content/grammar.js'
 import { CLASSIFIER_GROUPS } from '../src/data/classifiers.js'
-import { READINGS, lineText, lineVoice } from '../src/data/reading.js'
+import { READINGS } from '../content/readings.js'
+import { lineText, lineVoice } from '../src/data/readingLines.js'
 import { HANZI_AUDIO_CONTEXTS } from '../src/data/hanziAudio.js'
-import { DEFAULT_VOICE, VOICES, ttsFile } from '../src/data/voices.js'
+import { DEFAULT_VOICE, VOICES, ttsFile, ttsKey } from '../src/data/voices.js'
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 const OUT = join(ROOT, 'public', 'audio', 'tts')
@@ -104,7 +105,7 @@ async function main() {
   const files = new Set(jobs.map(job => job.file))
   const stale = readdirSync(OUT).filter(f => !files.has(f))
   for (const f of stale) rmSync(join(OUT, f))
-  const manifest = Object.fromEntries([...wanted].map(([text, voices]) => [text, [...voices].sort()]))
+  const manifest = Object.fromEntries([...wanted].map(([text, voices]) => [ttsKey(text), [...voices].sort()]))
   writeFileSync(MANIFEST, JSON.stringify(manifest), 'utf8')
   console.log(`  ✓ ${wanted.size} textes, ${files.size} fichiers (${created} nouveaux, ${chars} caractères envoyés, ${stale.length} supprimés)`)
 }
