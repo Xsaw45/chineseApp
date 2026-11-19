@@ -1,5 +1,7 @@
 // Module Grammaire : points du HSK 1 à 4, dans l'ordre d'apprentissage (un point se débloque avec 80 % au précédent).
 // Données pures, sans import. Progression : clé gr_<id>.
+// Contenu rédigé, en partie payant : seuls les points gratuits (isFreeGrammarPoint) sont dans le code de l'app ; les
+// autres sont servis par le serveur aux comptes Yidiano+ (content/split.js, /api/content).
 // Textes affichés : { fr, en } (langue de l'utilisateur) ; tr : traduction de la phrase chinoise.
 //
 // Point :
@@ -4776,3 +4778,5 @@ export const GRAMMAR_POINTS = [
     ],
   },
 ]
+
+export const isFreeGrammarPoint = point => point.level === 1
