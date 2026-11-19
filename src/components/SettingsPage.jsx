@@ -24,6 +24,7 @@ const LEGAL = [
   { key: 'settings.legalTerms', href: '/legal/conditions.html' },
   { key: 'settings.legalPrivacy', href: '/legal/confidentialite.html' },
   { key: 'settings.legalRefunds', href: '/legal/remboursement.html' },
+  { key: 'settings.legalLicences', href: '/legal/licences.html' },
 ]
 
 

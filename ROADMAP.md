@@ -78,8 +78,10 @@ micro-entreprise et paiement Paddle décidés. Nom, domaine et détails : voir [
 - **Paiement** : Paddle live en production depuis le 19/11/2026 (compte vérifié, domaine yidiano.com approuvé,
   produit Yidiano+ à 7,99 €/mois et 59,99 €/an TTC, webhook `https://yidiano.com/api/paddle/webhook`, lien de
   paiement par défaut ; clé API valable jusqu'au 18/11/2027, à renouveler avant). Restent : nom légal du compte
-  Paddle à corriger (« RoneTrade » → Erwan Houadec, affichage Yidiano ; demande à sellers@paddle.com) et un vrai
-  paiement de test remboursé.
+  Paddle à corriger (« RoneTrade » → Erwan Houadec, affichage Yidiano ; demande envoyée à sellers@paddle.com, réponse
+  attendue), puis un vrai paiement de test : compte `erwanhouadec1506+paddle@gmail.com` (rôle `user`, déjà invité),
+  abonnement mensuel payé avec une vraie carte, accès Yidiano+ vérifié, remboursement, résiliation et retrait de
+  l'adresse des invités.
 - **Bêta-testeurs** : premier mois offert au lancement, puis rôle `user`.
 - **Contenu payant protégé** : fait pour la grammaire, les lectures et les niveaux HSK 2+ ; ils sont servis par
   `/api/content` aux seuls comptes autorisés et ne sont plus lisibles dans le code de l'app.
@@ -87,26 +89,21 @@ micro-entreprise et paiement Paddle décidés. Nom, domaine et détails : voir [
 - **Comptes** : connexion par e-mail faite ; restent Google, puis Apple.
 - **E-mails** : fait depuis no-reply@yidiano.com via Brevo, domaine authentifié.
 - **Légal** : immatriculation, mentions légales, conditions d'utilisation et de vente, confidentialité, remboursement
-  sous 14 jours et suppression du compte sont en ligne. Restent l'adhésion à un médiateur de la consommation et la
-  relecture des textes par un juriste.
-- **Marque et domaines** : vérifier « Yidiano » à l'INPI et à l'EUIPO ; décider de yidiano.app et yidiano.fr.
+  sous 14 jours et suppression du compte sont en ligne. Restent : adhésion à un médiateur de la consommation (choix
+  proposé : CM2C, 48 € pour 3 ans, 36 € par médiation à distance), puis ses coordonnées sur le site et dans les CGV ;
+  relecture des textes par un juriste ; vérifier que l'activité déclarée (code APE 47.91A, vente à distance) couvre
+  bien l'édition d'une application par abonnement.
+- **Marque et domaines** : recherche TMview du 19/11/2026 : aucune marque « Yidiano » enregistrée ; marques proches
+  seulement en Chine (YIDIAN, YIDIAO) ou hors de nos classes. Reste à décider : dépôt INPI (classes 9, 41, 42),
+  yidiano.app et yidiano.fr.
 - **Produit** : objectif par jour au premier lancement et parrainage (filleul 14 jours d'essai, parrain 1 mois offert).
   Les captures de la page de présentation sont faites.
 - **Technique** : découper le chargement (3,4 Mo d'un bloc ; niveaux HSK chargés à l'ouverture) ; tests sur vrais
   iPhone et Android (son, encoche, hors ligne).
 - **Distribution** : PWA sur le web, puis Play Store (TWA) et App Store (Capacitor) avec achats intégrés.
-- **Licences et mentions** (page « À propos / crédits » dans l'app et sur la page de vente) :
-  - CC-CEDICT (définitions anglaises) : CC BY-SA 4.0.
-  - CFDICT (définitions françaises) : CC BY-SA 3.0, citer https://chine.in/mandarin/dictionnaire/CFDICT/ dans
-    l'app et sur les pages de présentation.
-  - Liste HSK : drkameleon/complete-hsk-vocabulary (MIT) ; lectures : krmanik/HSK-3.0 (Pleco, MIT / CC BY-SA 4.0).
-  - Enregistrements : hugolpz/audio-cmn (Chen Wang, Yue Tan / Shtooka), CC BY-SA.
-  - Tracés des caractères : Make Me a Hanzi via hanzi-writer-data, Arphic Public License (joindre la licence) ;
-    bibliothèque Hanzi Writer : MIT ; clés : Unihan (licence Unicode).
-  - Révision espacée : ts-fsrs (MIT) et sa dépendance srs-kit (BSD 3-Clause : reproduire l'avis de copyright,
-    fait dans les crédits de l'app).
-  - Le partage à l'identique (BY-SA) s'applique aux données, pas au code de l'app : publier les données modifiées
-    (définitions nettoyées) sous la même licence.
+- **Licences et mentions** : fait. Page `legal/licences.html` (liée depuis le site, les pages légales et les
+  paramètres de l'app) avec toutes les sources ; dictionnaire modifié publié sous CC BY-SA 4.0 dans
+  `/licences/yidiano-dictionnaire.json`, généré au build (vite.config.js).
 - **Langues** : ajouter d'autres langues d'interface (espagnol, allemand…) avec le même système de traduction.
 
 ## Mesure d'audience
