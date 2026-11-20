@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useAccess } from './access/context.js'
 import { canOpenModule, FREE_VOCAB_TESTS_PER_DAY } from './access/rules.js'
+import { capture } from './analytics.js'
+import { ConsentBanner } from './components/ConsentBanner.jsx'
 import { withActivity, markStepDone, addPracticeTime, countVocabTest, vocabTestsToday } from './utils/activity.js'
 import { PLACEMENT_KEY } from './utils/levelTest.js'
 import { VocabLevelTest } from './components/VocabLevelTest.jsx'
@@ -32,6 +34,7 @@ export default function App() {
   const [screen, setScreen] = useState('home')
   const [plusBack, setPlusBack] = useState('settings')
   const openPlus = useCallback(from => {
+    capture('plus_viewed', { from })
     setPlusBack(from)
     setScreen('plus')
   }, [])
@@ -87,13 +90,20 @@ export default function App() {
   // l'écran Yidiano+ s'ouvre. null : pas de limite.
   const vocabTestsLeft = hasPlus ? null : Math.max(0, FREE_VOCAB_TESTS_PER_DAY - vocabTestsToday(progressMap))
   const startVocabQuiz = () => {
-    if (!hasPlus && vocabTestsToday(latestMap()) >= FREE_VOCAB_TESTS_PER_DAY) return openPlus('hsk')
+    if (!hasPlus && vocabTestsToday(latestMap()) >= FREE_VOCAB_TESTS_PER_DAY) {
+      capture('free_limit_reached', { limit: 'vocab_tests' })
+      return openPlus('hsk')
+    }
     if (startQuiz(accessibleLevels) && !hasPlus) saveUpdates([countVocabTest(latestMap())])
   }
 
   const home = () => setScreen('home')
   // Module Yidiano+ sans l'accès (fin d'abonnement, aperçu gratuit de l'admin) : retour à l'accueil.
   const view = canOpenModule(screen, hasPlus) ? screen : 'home'
+  // Mesure d'audience : écrans ouverts (l'app ne change pas d'adresse, donc pas de pages vues après la première).
+  useEffect(() => {
+    capture('screen_viewed', { screen: view })
+  }, [view])
   const openModule = module => (canOpenModule(module, hasPlus) ? setScreen(module) : openPlus('home'))
   let content
 
@@ -136,6 +146,8 @@ export default function App() {
     content = (
       <LanguageChoice
         onChoose={code => {
+          // Premier lancement d'un compte nouveau : l'étape « inscription » de l'entonnoir.
+          capture('signed_up', { lang: code })
           saveSetting({ lang: code, onboarded: true })
           setLevelTest({ mode: 'placement', from: 'onboarding' })
         }}
@@ -213,5 +225,10 @@ export default function App() {
     )
   }
 
-  return <LangContext.Provider value={langValue}>{content}</LangContext.Provider>
+  return (
+    <LangContext.Provider value={langValue}>
+      {content}
+      <ConsentBanner />
+    </LangContext.Provider>
+  )
 }

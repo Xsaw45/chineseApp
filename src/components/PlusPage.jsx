@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Check } from 'lucide-react'
 import { useAccess } from '../access/context.js'
 import { fetchPaddleConfig, loadPaddle, onPaddleEvent } from '../access/paddle.js'
+import { capture } from '../analytics.js'
 import { useLang } from '../i18n/useLang.js'
 import { Button, Screen, TopBar } from './ui.jsx'
 import { ICON_SM } from './uiStyles.js'
@@ -73,9 +74,14 @@ export function PlusPage({ onBack }) {
     return () => { active = false }
   }, [canSubscribe])
 
+  // Formule et essai du paiement ouvert, repris dans l'événement de fin de paiement (mesure d'audience).
+  const opened = useRef(null)
   useEffect(() => onPaddleEvent(event => {
     if (event.name === 'checkout.loaded') setCheckout('idle')
-    if (event.name === 'checkout.completed') setCheckout('activating')
+    if (event.name === 'checkout.completed') {
+      capture('checkout_completed', opened.current)
+      setCheckout('activating')
+    }
   }), [])
 
   useEffect(() => {
@@ -114,6 +120,8 @@ export function PlusPage({ onBack }) {
 
   function subscribe() {
     setCheckout('opening')
+    opened.current = { plan, trial: Boolean(trial) }
+    capture('checkout_opened', opened.current)
     try {
       paddle.Paddle.Checkout.open({
         items: [{ priceId: (trial?.prices ?? paddle.config.prices)[plan], quantity: 1 }],

@@ -20,7 +20,7 @@
 
     <main class="legal mx-auto max-w-3xl px-6 py-12 lg:py-16">
       <h1>Politique de confidentialité</h1>
-      <p>Dernière mise à jour : 18 novembre 2026</p>
+      <p>Dernière mise à jour : 20 novembre 2026</p>
 
       <h2>Responsable du traitement</h2>
       <p>
@@ -35,6 +35,7 @@
         <li><strong>Connexion et sécurité</strong> : jetons de connexion et de session sous forme hachée, dates d'expiration et nombre de tentatives.</li>
         <li><strong>Abonnement</strong> : identifiants client et abonnement Paddle, statut, échéance et date de résiliation prévue. Nous ne recevons ni ne stockons les données de carte bancaire.</li>
         <li><strong>Journaux techniques</strong> : erreurs, requêtes et informations nécessaires au diagnostic et à la sécurité du service.</li>
+        <li><strong>Mesure d'audience, seulement avec votre accord</strong> : pages et écrans vus, étapes du parcours (inscription, écran Yidiano+, ouverture et fin du paiement), clics, informations techniques (navigateur, type d'appareil ; l'adresse IP n'est pas conservée) et, pour certaines visites, un enregistrement de la navigation où les champs de saisie sont masqués. Un compte connecté y est rattaché par une empreinte non réversible de son adresse e-mail, jamais par l'adresse elle-même.</li>
       </ul>
 
       <h2>Pourquoi nous les utilisons</h2>
@@ -43,8 +44,17 @@
         <li>Activer Yidiano+, suivre l'état de l'abonnement et répondre aux demandes : exécution du contrat.</li>
         <li>Limiter les tentatives de connexion, sécuriser et diagnostiquer le service : intérêt légitime à protéger Yidiano et ses utilisateurs.</li>
         <li>Respecter les obligations comptables et fiscales applicables : obligation légale, principalement prise en charge par Paddle en tant que vendeur.</li>
+        <li>Mesurer l'audience et comprendre le parcours pour améliorer Yidiano : consentement, donné ou refusé dans le bandeau et modifiable à tout moment.</li>
       </ul>
-      <p>Yidiano ne vend pas vos données, n'affiche pas de publicité et n'utilise actuellement aucun outil de mesure d'audience.</p>
+      <p>Yidiano ne vend pas vos données et n'affiche pas de publicité.</p>
+
+      <h2 id="mesure-audience">Mesure d'audience</h2>
+      <p>
+        Yidiano utilise PostHog, hébergé dans l'Union européenne, uniquement si vous l'acceptez dans le bandeau affiché
+        à la première visite. Sans accord, rien n'est chargé ni envoyé à PostHog. Vous pouvez changer d'avis à tout
+        moment : dans l'app, Paramètres, « Mesure d'audience » ; sur la page d'accueil, lien « Cookies » en bas de page.
+        Le retrait arrête la collecte et efface les identifiants PostHog gardés sur l'appareil.
+      </p>
 
       <h2>Destinataires et prestataires</h2>
       <p>Les données sont accessibles uniquement à l'éditeur et, dans la mesure nécessaire à leur mission, à :</p>
@@ -52,10 +62,13 @@
         <li><strong>Contabo GmbH</strong>, hébergement de l'application et de la base de données sur un serveur situé en France.</li>
         <li><strong>Brevo</strong>, envoi des e-mails de connexion.</li>
         <li><strong>Paddle.com Market Limited</strong>, paiement, facturation, taxes et gestion de l'abonnement. Paddle est responsable des données de paiement qu'il collecte ; consultez sa <a href="https://www.paddle.com/legal/privacy">politique de confidentialité</a>.</li>
+        <li><strong>PostHog Inc.</strong>, mesure d'audience avec votre accord, données hébergées dans l'Union européenne ; consultez sa <a href="https://posthog.com/privacy">politique de confidentialité</a>.</li>
       </ul>
       <p>
         Contabo et Brevo sont établis dans l'Union européenne. Paddle est établi au Royaume-Uni et peut faire appel à
-        ses propres prestataires selon les garanties décrites dans sa politique.
+        ses propres prestataires selon les garanties décrites dans sa politique. PostHog est établi aux États-Unis mais
+        héberge ces données dans l'Union européenne ; un accès depuis l'extérieur de l'Union, par exemple pour son
+        assistance, est encadré par les clauses contractuelles types de la Commission européenne.
       </p>
 
       <h2>Durées de conservation</h2>
@@ -65,14 +78,17 @@
         <li>Sauvegardes chiffrées : rotation automatique, avec une conservation maximale de 14 jours.</li>
         <li>Journaux techniques : rotation automatique limitée par volume ; les données les plus anciennes sont supprimées lorsque la limite est atteinte.</li>
         <li>Données de facturation conservées par Paddle : selon les durées légales et sa propre politique.</li>
+        <li>Mesure d'audience : selon la formule PostHog utilisée, au plus un an pour les événements et un mois pour les enregistrements de navigation.</li>
       </ul>
 
       <h2>Sur votre appareil</h2>
       <p>
-        Yidiano utilise un cookie de session strictement nécessaire, nommé <code>yidiano_session</code>, pour maintenir
+        Yidiano utilise un cookie de session strictement nécessaire, nommé <code>langues_session</code>, pour maintenir
         la connexion. Il est protégé contre l'accès par JavaScript et peut durer jusqu'à un an. L'app conserve aussi
-        localement la langue, une copie de la progression et le contenu nécessaire au fonctionnement hors ligne, dans
-        le stockage du navigateur. Ces éléments ne servent pas au suivi publicitaire.
+        localement la langue, une copie de la progression, le contenu nécessaire au fonctionnement hors ligne et votre
+        choix sur la mesure d'audience, dans le stockage du navigateur. Si vous acceptez la mesure d'audience, PostHog y
+        garde aussi un identifiant de visiteur ; il n'utilise pas de cookie. Ces éléments ne servent pas au suivi
+        publicitaire.
       </p>
       <p>
         Paddle.js est chargé lorsque vous ouvrez l'écran Yidiano+ afin d'afficher les prix et, si vous le choisissez,

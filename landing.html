@@ -344,6 +344,7 @@
             <a class="underline decoration-rule underline-offset-2 hover:text-ink" href="/legal/confidentialite.html">Confidentialité</a>
             <a class="underline decoration-rule underline-offset-2 hover:text-ink" href="/legal/remboursement.html">Remboursement</a>
             <a class="underline decoration-rule underline-offset-2 hover:text-ink" href="/legal/licences.html">Licences</a>
+            <button type="button" class="underline decoration-rule underline-offset-2 hover:text-ink" data-consent-open>Cookies</button>
           </nav>
           <p class="max-w-3xl leading-[1.6]">
             Définitions françaises : <a class="underline decoration-rule underline-offset-2 hover:text-ink" href="https://chine.in/mandarin/dictionnaire/CFDICT/">CFDICT</a> (CC BY-SA 3.0) ·
@@ -355,5 +356,20 @@
         </div>
       </div>
     </footer>
+
+    <!-- Mesure d'audience : affiché tant qu'aucun choix n'est fait (src/analytics.js, src/landing/main.js). -->
+    <div class="fixed inset-x-0 bottom-0 z-50 p-3" role="dialog" aria-label="Mesure d'audience" data-consent hidden>
+      <div class="mx-auto max-w-xl rounded-2xl border border-rule bg-sheet p-5 shadow-xl">
+        <p class="text-[15px] leading-[1.6] text-ink">
+          Accepter la mesure d'audience nous aide à améliorer Yidiano : pages vues, étapes du parcours et parfois
+          l'enregistrement d'une visite, champs de saisie masqués. Hébergée dans l'UE, sans publicité.
+          <a class="underline decoration-rule underline-offset-2" href="/legal/confidentialite.html#mesure-audience">En savoir plus</a>
+        </p>
+        <div class="mt-4 grid grid-cols-2 gap-2">
+          <button type="button" class="h-11 rounded-[10px] border border-rule bg-paper px-5 text-base font-medium text-ink transition-colors duration-150 hover:bg-wash" data-consent-choice="denied">Refuser</button>
+          <button type="button" class="h-11 rounded-[10px] border border-rule bg-paper px-5 text-base font-medium text-ink transition-colors duration-150 hover:bg-wash" data-consent-choice="granted">Accepter</button>
+        </div>
+      </div>
+    </div>
   </body>
 </html>

@@ -1,6 +1,7 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Check, LogOut, Trash2 } from 'lucide-react'
 import { useAccess } from '../access/context.js'
+import { CONSENT_EVENT, consent, resetAnalytics, setConsent } from '../analytics.js'
 import { clearPlusContent } from '../content/plus.js'
 import { wipeLocalProgress } from '../db/index.js'
 import { LANGS, LANG_NAMES } from '../i18n/text.js'
@@ -32,7 +33,28 @@ async function logout() {
   await fetch('/api/auth/logout', { method: 'POST' })
   localStorage.removeItem('yidiano.account')
   clearPlusContent()
+  resetAnalytics()
   location.assign('/login/')
+}
+
+/** Mesure d'audience (src/analytics.js) : le choix du bandeau, modifiable à tout moment. */
+function AnalyticsSetting() {
+  const { t } = useLang()
+  const [granted, setGranted] = useState(() => consent() === 'granted')
+  useEffect(() => {
+    const update = event => setGranted(event.detail === 'granted')
+    window.addEventListener(CONSENT_EVENT, update)
+    return () => window.removeEventListener(CONSENT_EVENT, update)
+  }, [])
+  return (
+    <>
+      <SectionLabel className="mt-10">{t('consent.title')}</SectionLabel>
+      <label className="flex items-start gap-3 rounded-2xl border border-line bg-card p-4 text-sm text-fg-2">
+        <input type="checkbox" className="mt-0.5" checked={granted} onChange={event => setConsent(event.target.checked ? 'granted' : 'denied')} />
+        <span>{t('consent.setting')}</span>
+      </label>
+    </>
+  )
 }
 
 /** Suppression définitive du compte (RGPD) : l'adresse retapée confirme ; un abonnement en cours est résilié. */
@@ -150,6 +172,8 @@ export function SettingsPage({ onBack, onOpenPlus, onOpenAdmin }) {
             </li>
           ))}
         </ul>
+
+        <AnalyticsSetting />
 
         <SectionLabel className="mt-10">{t('settings.credits')}</SectionLabel>
         <p className="mb-3 text-sm text-fg-3">{t('settings.creditsIntro')}</p>

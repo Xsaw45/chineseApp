@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { AccessContext } from './context.js'
 import { clearPlusContent, syncPlusContent } from '../content/plus.js'
+import { CONSENT_EVENT, identify } from '../analytics.js'
 
 const CACHE_KEY = 'yidiano.account'
 
@@ -27,6 +28,19 @@ export function AccessProvider({ children }) {
     setAccount(next)
     if (next) localStorage.setItem(CACHE_KEY, JSON.stringify(next))
   }, [])
+
+  // Mesure d'audience : le compte est rattaché à ses événements (empreinte de l'adresse, rôle, formule), aussi
+  // quand le consentement arrive après l'ouverture de l'app.
+  const login = account?.login
+  const role = account?.role
+  const plan = account?.access?.plan
+  useEffect(() => {
+    if (!login) return
+    const send = () => identify(login, { role, plan })
+    send()
+    window.addEventListener(CONSENT_EVENT, send)
+    return () => window.removeEventListener(CONSENT_EVENT, send)
+  }, [login, role, plan])
 
   const refresh = useCallback(async () => {
     try {

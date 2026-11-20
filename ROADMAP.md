@@ -118,5 +118,10 @@ micro-entreprise et paiement Paddle décidés. Nom, domaine et détails : voir [
 
 - Pendant la bêta : la base du serveur contient déjà la progression de chaque testeur (réponses, temps de pratique,
   séries) ; une page Admin de statistiques suffit pour ces quelques comptes.
-- Avant l'ouverture publique : PostHog (hébergement UE) pour l'entonnoir page de présentation → inscription → essai
-  → abonnement et la rétention, avec bandeau de consentement ; pas d'enregistrement de session sans consentement.
+- PostHog fait le 20/11/2026 : projet « Yidiano » (eu.posthog.com, projet 178420, fuseau Europe/Paris), chargé
+  seulement après consentement (bandeau sur la page de présentation et dans l'app, Paramètres « Mesure d'audience »,
+  lien « Cookies » en bas de la page de présentation ; `src/analytics.js`). Stockage localStorage, sans cookie ;
+  compte identifié par l'empreinte SHA-256 de l'adresse. Événements : pages vues (propriété `surface` landing/app),
+  `screen_viewed`, `signed_up` (premier lancement), `plus_viewed`, `free_limit_reached`, `checkout_opened`,
+  `checkout_completed` (`plan`, `trial`). Reste : entonnoir et tableau de bord dans PostHog ; proxy `/ingest` par
+  Caddy si les bloqueurs de publicité masquent trop de visites.

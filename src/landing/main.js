@@ -1,5 +1,18 @@
 import HanziWriter from 'hanzi-writer'
+import { consent, initAnalytics, setConsent } from '../analytics.js'
 import './landing.css'
+
+// Mesure d'audience : bandeau tant qu'aucun choix n'est fait ; le lien « Cookies » du pied de page le rouvre.
+initAnalytics('landing')
+const banner = document.querySelector('[data-consent]')
+banner.hidden = consent() !== null
+for (const button of banner.querySelectorAll('[data-consent-choice]')) {
+  button.addEventListener('click', () => {
+    setConsent(button.dataset.consentChoice)
+    banner.hidden = true
+  })
+}
+document.querySelector('[data-consent-open]').addEventListener('click', () => { banner.hidden = false })
 
 // Le nom s'écrit tout seul dans le cahier : 一 puis 点, trait par trait, la clé de 点 (灬) en rouge,
 // comme l'animation de l'ordre des traits dans l'app. Sans animation (prefers-reduced-motion) : caractères tracés.
