@@ -105,6 +105,12 @@ export function PlusPage({ onBack }) {
     const price = paddle && prices[paddle.config.prices.yearly]
     return price && t('plus.perMonthEquivalent', { price: priceLabel({ ...price, amount: Math.round(price.amount / 12) }, lang) })
   }
+  // Économie de l'annuel face à 12 mois du mensuel (59,99 € contre 95,88 € → 37 %).
+  const yearlySaving = () => {
+    const yearly = paddle && prices[paddle.config.prices.yearly]
+    const monthly = paddle && prices[paddle.config.prices.monthly]
+    return yearly && monthly && Math.round((1 - yearly.amount / (monthly.amount * 12)) * 100)
+  }
 
   function subscribe() {
     setCheckout('opening')
@@ -160,6 +166,7 @@ export function PlusPage({ onBack }) {
               {PLANS.map(name => {
                 const price = priceText(name)
                 const perMonth = name === 'yearly' && yearlyPerMonth()
+                const saving = name === 'yearly' && yearlySaving()
                 return (
                   <li key={name}>
                     <button
@@ -169,7 +176,10 @@ export function PlusPage({ onBack }) {
                       onClick={() => setPlan(name)}
                       className={`flex min-h-14 w-full items-center justify-between gap-3 rounded-2xl border bg-card px-4 py-2 text-left transition-colors duration-150 ease-out ${plan === name ? 'border-accent' : 'border-line hover:bg-raised'}`}
                     >
-                      <span className="text-base font-medium text-fg">{t(`plus.${name}`)}</span>
+                      <span className="flex items-center gap-2 text-base font-medium text-fg">
+                        {t(`plus.${name}`)}
+                        {saving > 0 && <span className="rounded-full bg-accent px-2 py-0.5 text-xs font-medium text-white tabular-nums">{t('plus.yearlySaving', { pct: saving })}</span>}
+                      </span>
                       {price && (
                         <span className="text-right">
                           <span className="block text-[15px] text-fg-2">{price}</span>
