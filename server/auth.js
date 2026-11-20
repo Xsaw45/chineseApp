@@ -11,6 +11,13 @@ const SESSION_TTL = 365 * 24 * 3600_000
 const RESEND_DELAY = 60_000 // entre deux e-mails a la meme adresse
 const MAX_SENDS_PER_HOUR = 5
 const MAX_CODE_ATTEMPTS = 5
+// Par adresse IP (inscriptions ouvertes) : sans cette limite, un robot ferait envoyer des e-mails de connexion à des
+// milliers d'adresses (quota Brevo, réputation de yidiano.com). Large pour un foyer ou une classe derrière une box.
+const HOUR = 3600_000
+const DAY = 24 * HOUR
+const MAX_IP_SENDS_PER_HOUR = 10
+const MAX_IP_SENDS_PER_DAY = 30
+const IP_SWEEP_SIZE = 10_000
 
 const hash = (value) => createHash('sha256').update(value).digest('hex')
 const codeHash = (email, code) => hash(`${email}:${code}`)
@@ -47,6 +54,22 @@ const emailSchema = { type: 'string', minLength: 3, maxLength: 254, pattern: '^[
 /** Routes /api/auth/* : demande de connexion, verification (lien ou code), deconnexion. */
 export function authRoutes({ db, mailer, publicUrl, allowedEmails }) {
   const secure = publicUrl.startsWith('https:')
+  // Envois récents par adresse IP, en mémoire (remis à zéro au redémarrage, ce qui suffit contre un robot).
+  const ipSends = new Map()
+
+  /** Attente en ms avant qu'un e-mail puisse partir pour cette IP (0 = tout de suite) ; garde ses envois du jour. */
+  function ipWait(ip, now) {
+    if (ipSends.size > IP_SWEEP_SIZE) {
+      for (const [key, sends] of ipSends) if (now - sends.at(-1) >= DAY) ipSends.delete(key)
+    }
+    const today = (ipSends.get(ip) || []).filter(at => now - at < DAY)
+    if (today.length) ipSends.set(ip, today)
+    else ipSends.delete(ip)
+    const lastHour = today.filter(at => now - at < HOUR)
+    if (lastHour.length >= MAX_IP_SENDS_PER_HOUR) return lastHour[0] + HOUR - now
+    if (today.length >= MAX_IP_SENDS_PER_DAY) return today[0] + DAY - now
+    return 0
+  }
 
   function openSession(reply, email) {
     const token = randomBytes(32).toString('base64url')
@@ -83,6 +106,9 @@ export function authRoutes({ db, mailer, publicUrl, allowedEmails }) {
       const sameHour = previous && now - previous.window_start < 3600_000
       const sentCount = sameHour ? previous.sent_count + 1 : 1
       if (sentCount > MAX_SENDS_PER_HOUR) return reply.code(429).send({ error: 'too_many' })
+      const wait = ipWait(request.ip, now)
+      if (wait) return reply.code(429).send({ error: 'too_many_ip', retryAfter: Math.ceil(wait / 1000) })
+      ipSends.set(request.ip, [...(ipSends.get(request.ip) || []), now])
 
       const token = randomBytes(32).toString('base64url')
       const code = String(randomInt(0, 1_000_000)).padStart(6, '0')

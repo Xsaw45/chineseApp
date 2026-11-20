@@ -85,7 +85,8 @@ micro-entreprise et paiement Paddle décidés. Nom, domaine et détails : voir [
 - **Bêta-testeurs** : premier mois offert au lancement, puis rôle `user`.
 - **Contenu payant protégé** : fait pour la grammaire, les lectures et les niveaux HSK 2+ ; ils sont servis par
   `/api/content` aux seuls comptes autorisés et ne sont plus lisibles dans le code de l'app.
-- **Inscriptions ouvertes** : retirer la liste d'invités (`AUTH_ALLOWED_EMAILS`) une fois le paiement en place.
+- **Inscriptions ouvertes** : limite d'envois par IP faite ; retirer la liste d'invités (`AUTH_ALLOWED_EMAILS`) une
+  fois le paiement testé. Les bêta-testeurs gardent leur rôle `beta` (enregistré dans la base, pas dans la liste).
 - **Comptes** : connexion par e-mail faite ; restent Google, puis Apple.
 - **E-mails** : fait depuis no-reply@yidiano.com via Brevo, domaine authentifié.
 - **Légal** : immatriculation, mentions légales, conditions d'utilisation et de vente, confidentialité, remboursement

@@ -49,7 +49,10 @@ const HASHED = '/assets/'
  * d'abonnement en vente.
  */
 export function buildApp({ dbPath, publicDir, publicUrl, mailer, allowedEmails = null, paddle = null, logger = true }) {
-  const app = Fastify({ logger, bodyLimit: 20 * 1024 * 1024 })
+  // Caddy arrive par le réseau local (passerelle Docker) : request.ip = la dernière adresse non locale de
+  // X-Forwarded-For, celle ajoutée par Caddy, pas celle qu'un client peut écrire en tête. Sert à la limite d'envois
+  // par IP (server/auth.js).
+  const app = Fastify({ logger, bodyLimit: 20 * 1024 * 1024, trustProxy: 'loopback, uniquelocal' })
   const db = openDb(dbPath)
   // Grammaire et lectures Yidiano+ : hors du code de l'app, servies ici aux seuls comptes qui y ont droit.
   const content = splitContent()

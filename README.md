@@ -18,7 +18,8 @@ Feuille de route : [ROADMAP.md](ROADMAP.md) ; vente : [COMMERCIALISATION.md](COM
 
 - **Connexion** (`server/auth.js`) : lien ou code à 6 chiffres valables 15 minutes, session d'un an (cookie
   `HttpOnly`). L'identifiant est l'adresse e-mail en minuscules. Un envoi par minute et 5 par heure au plus par
-  adresse ; 5 essais de code. Sans `SMTP_URL` (développement), le lien et le code sont écrits dans le journal.
+  adresse ; 10 par heure et 30 par jour au plus par IP (celle ajoutée par Caddy à `X-Forwarded-For`, compteur en
+  mémoire) ; 5 essais de code. Sans `SMTP_URL` (développement), le lien et le code sont écrits dans le journal.
 - **Données** : la progression est gardée dans IndexedDB et l'app fonctionne hors ligne. Les modifications sont
   découpées en enregistrements (`hsk1_0100`, `settings`, …) et envoyées à `POST /api/sync/zh` (`src/db/sync.js`).
 - **Fusion** : par enregistrement, le plus récent gagne (horloge de l'appareil). Le serveur renvoie ce qui a changé
@@ -30,7 +31,8 @@ Feuille de route : [ROADMAP.md](ROADMAP.md) ; vente : [COMMERCIALISATION.md](COM
 
 Variables du serveur : `DB_PATH`, `PUBLIC_DIR` (chemin absolu du build), `PUBLIC_URL` (liens des e-mails), `PORT`,
 `SMTP_URL` (`smtps://identifiant:mot-de-passe@hôte:465`), `MAIL_FROM`, `AUTH_ALLOWED_EMAILS` (adresses invitées
-séparées par des virgules ; vide = toutes).
+séparées par des virgules ; vide = toutes). Le rôle (`admin` / `beta` / `user`) est gardé dans la base : vider la
+liste ouvre les inscriptions sans changer le rôle des comptes existants.
 
 ## Développement
 

@@ -85,6 +85,7 @@
         not_invited: 'Cette adresse n’est pas invitée au test. Vérifie l’orthographe ou demande une invitation.',
         too_soon: 'Un e-mail vient d’être envoyé : attends {s} s avant d’en demander un autre.',
         too_many: 'Trop de demandes pour cette adresse : réessaie dans une heure.',
+        too_many_ip: 'Trop de demandes depuis ce réseau : réessaie dans {m} min.',
         wrong_code: 'Code incorrect ({n} essai(s) restant(s)).',
         expired_code: 'Ce code a expiré ou a été trop souvent mal saisi : demande un nouveau code.',
         invalid_link: 'Ce lien a expiré ou a déjà servi : demande un nouveau code.',
@@ -101,6 +102,7 @@
         not_invited: 'This address is not invited to the test. Check the spelling or ask for an invitation.',
         too_soon: 'An email was just sent: wait {s} s before asking for another one.',
         too_many: 'Too many requests for this address: try again in an hour.',
+        too_many_ip: 'Too many requests from this network: try again in {m} min.',
         wrong_code: 'Wrong code ({n} attempt(s) left).',
         expired_code: 'This code expired or was mistyped too often: ask for a new code.',
         invalid_link: 'This link expired or was already used: ask for a new code.',
@@ -139,7 +141,8 @@
       const data = await res.json().catch(() => ({}));
       if (res.ok) return { data };
       const message = (t[data.error] || t.other)
-        .replace('{s}', data.retryAfter ?? '').replace('{n}', data.attemptsLeft ?? 0);
+        .replace('{s}', data.retryAfter ?? '').replace('{m}', Math.ceil((data.retryAfter ?? 60) / 60))
+        .replace('{n}', data.attemptsLeft ?? 0);
       return { error: message };
     }
 

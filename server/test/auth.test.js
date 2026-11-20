@@ -109,6 +109,31 @@ test('deuxieme envoi trop rapproche : 429', async () => {
   assert.equal(sent.length, 1)
 })
 
+test('inscriptions ouvertes : 10 e-mails par heure et par IP, l IP vue par Caddy et non celle ecrite par le client', async () => {
+  const open = buildApp({
+    dbPath: join(dir, 'open.db'),
+    publicDir: dir,
+    publicUrl: 'https://yidiano.example',
+    mailer: { sendLogin: async (message) => sent.push(message) },
+    logger: false,
+  })
+  const request = (email, forwardedFor) => open.inject({
+    method: 'POST', url: '/api/auth/request', payload: { email }, headers: { 'x-forwarded-for': forwardedFor },
+  })
+  try {
+    for (let i = 0; i < 10; i++) assert.equal((await request(`u${i}@x.fr`, '203.0.113.7')).statusCode, 202)
+    // Un robot ajoute sa propre adresse en tête : Caddy ajoute la vraie à la fin, c'est elle qui compte.
+    const blocked = await request('u10@x.fr', '198.51.100.1, 203.0.113.7')
+    assert.equal(blocked.statusCode, 429)
+    assert.equal(blocked.json().error, 'too_many_ip')
+    assert.ok(blocked.json().retryAfter > 0 && blocked.json().retryAfter <= 3600)
+    assert.equal(sent.length, 10)
+    assert.equal((await request('u10@x.fr', '203.0.113.8')).statusCode, 202)
+  } finally {
+    await open.close()
+  }
+})
+
 test('next ne peut pas renvoyer vers un autre site', async () => {
   await post('/api/auth/request', { email: 'a@x.fr', next: '//evil.example/' })
   assert.equal(new URL(sent[0].link).searchParams.get('next'), '/')
