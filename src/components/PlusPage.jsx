@@ -100,6 +100,11 @@ export function PlusPage({ onBack }) {
     const price = paddle && prices[paddle.config.prices[name]]
     return price && t(name === 'yearly' ? 'plus.perYear' : 'plus.perMonth', { price: priceLabel(price, lang) })
   }
+  // Annuel ramené au mois (59,99 € → 5,00 €), pour le comparer au mensuel.
+  const yearlyPerMonth = () => {
+    const price = paddle && prices[paddle.config.prices.yearly]
+    return price && t('plus.perMonthEquivalent', { price: priceLabel({ ...price, amount: Math.round(price.amount / 12) }, lang) })
+  }
 
   function subscribe() {
     setCheckout('opening')
@@ -154,6 +159,7 @@ export function PlusPage({ onBack }) {
             <ul role="radiogroup" aria-label={t('plus.title')} className="grid gap-2">
               {PLANS.map(name => {
                 const price = priceText(name)
+                const perMonth = name === 'yearly' && yearlyPerMonth()
                 return (
                   <li key={name}>
                     <button
@@ -161,10 +167,15 @@ export function PlusPage({ onBack }) {
                       role="radio"
                       aria-checked={plan === name}
                       onClick={() => setPlan(name)}
-                      className={`flex h-14 w-full items-center justify-between rounded-2xl border bg-card px-4 text-left transition-colors duration-150 ease-out ${plan === name ? 'border-accent' : 'border-line hover:bg-raised'}`}
+                      className={`flex min-h-14 w-full items-center justify-between gap-3 rounded-2xl border bg-card px-4 py-2 text-left transition-colors duration-150 ease-out ${plan === name ? 'border-accent' : 'border-line hover:bg-raised'}`}
                     >
                       <span className="text-base font-medium text-fg">{t(`plus.${name}`)}</span>
-                      {price && <span className="text-[15px] text-fg-2">{price}</span>}
+                      {price && (
+                        <span className="text-right">
+                          <span className="block text-[15px] text-fg-2">{price}</span>
+                          {perMonth && <span className="block text-sm font-medium text-accent">{perMonth}</span>}
+                        </span>
+                      )}
                     </button>
                   </li>
                 )

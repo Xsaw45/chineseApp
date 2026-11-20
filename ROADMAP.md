@@ -80,11 +80,12 @@ micro-entreprise et paiement Paddle décidés. Nom, domaine et détails : voir [
   produit Yidiano+ à 7,99 €/mois et 59,99 €/an TTC, webhook `https://yidiano.com/api/paddle/webhook`, lien de
   paiement par défaut ; clé API valable jusqu'au 18/11/2027, à renouveler avant). Restent : nom légal du compte
   Paddle à corriger (« RoneTrade » → Erwan Houadec, affichage Yidiano ; demande envoyée à sellers@paddle.com, réponse
-  attendue), puis un vrai paiement de test : compte `erwanhouadec1506+paddle@gmail.com` (rôle `user`, déjà invité),
-  abonnement mensuel payé avec une vraie carte, accès Yidiano+ vérifié, remboursement, résiliation et retrait de
-  l'adresse des invités. Essai : prix Paddle avec 15 jours d'essai et carte obligatoire créés le 20/11/2026
-  (`pri_01m7wm9ggs1px5ryc0vcv6bdne` mensuel, `pri_01m7wm9gpvmnter9jrhkbkyvqq` annuel) ; le tester avec un compte
-  jamais abonné (le compte `+paddle` a déjà eu un abonnement, l'essai ne lui est plus proposé).
+  attendue). Essai : prix Paddle avec 15 jours d'essai et carte obligatoire créés le 20/11/2026
+  (`pri_01m7wm9ggs1px5ryc0vcv6bdne` mensuel, `pri_01m7wm9gpvmnter9jrhkbkyvqq` annuel). Contrôle du 20/11/2026 :
+  webhook prod (signature) et prix live vérifiés ; paiement réel non testé (choix d'Erwan). Restent dans Paddle :
+  versements (Payout Settings vides : type de compte, nom, moyen de paiement) et libellé bancaire `RONETRADE` à
+  remplacer par `YIDIANO` (Checkout settings, Statement description). Un remboursement fait dans Paddle ne résilie
+  probablement pas l'abonnement : résilier aussi l'abonnement à chaque remboursement.
 - **Bêta-testeurs** : premier mois offert au lancement, puis rôle `user`.
 - **Contenu payant protégé** : grammaire et lectures servies par `/api/content` aux seuls comptes Yidiano+, absentes
   du code de l'app. Vocabulaire et caractères restent dans l'app (verrouillés côté client).
