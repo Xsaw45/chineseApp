@@ -6,7 +6,7 @@ import tailwindcss from '@tailwindcss/vite'
 import { VitePWA } from 'vite-plugin-pwa'
 import { splitContent } from './content/split.js'
 
-// Grammaire et lectures (content/) : seul le contenu gratuit et le résumé des éléments Yidiano+ entrent dans l'app
+// Grammaire et lectures (content/) : seul le résumé des éléments Yidiano+ entre dans l'app
 // (module virtual:yidiano-content, lu par src/content/plus.js). Après une modification de content/, relancer le
 // serveur de développement.
 function yidianoContent() {

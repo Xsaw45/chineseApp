@@ -2,8 +2,8 @@ import Fastify from 'fastify'
 import fastifyStatic from '@fastify/static'
 import { openDb } from './db.js'
 import { authRoutes, expiredSessionCookie, normalizeEmail, sessionUser } from './auth.js'
-import { accountUser, ROLES, TRIAL_DURATION } from './access.js'
-import { cancelSubscription, portalUrl, subscriptionAccess, verifySignature } from './paddle.js'
+import { accountUser, ROLES } from './access.js'
+import { cancelSubscription, portalUrl, subscriptionAccess, TRIAL_DAYS, verifySignature } from './paddle.js'
 import { splitContent } from '../content/split.js'
 
 const APPS = ['zh']
@@ -76,10 +76,12 @@ export function buildApp({ dbPath, publicDir, publicUrl, mailer, allowedEmails =
       const subscription = event.data
       const eventAt = Date.parse(event.occurred_at)
       // custom_data.email : l'adresse du compte, passée par l'app à l'ouverture du paiement (src/components/PlusPage.jsx).
-      // Un compte n'est créé que pour un abonnement en cours, jamais par l'annonce de fin d'un compte supprimé.
+      // Un compte n'est créé que pour un abonnement en cours (essai compris), jamais par l'annonce de fin d'un compte
+      // supprimé.
       const email = subscription.custom_data?.email && normalizeEmail(subscription.custom_data.email)
+      const current = subscription.status === 'active' || subscription.status === 'trialing'
       const account = db.accounts.byPaddleCustomer(subscription.customer_id)
-        || (email && (db.accounts.get(email) || (subscription.status === 'active' ? db.accounts.ensure(email) : null)))
+        || (email && (db.accounts.get(email) || (current ? db.accounts.ensure(email) : null)))
       if (!account) {
         request.log.warn({ subscription: subscription.id }, 'abonnement Paddle sans compte Yidiano')
         return { ok: true }
@@ -109,13 +111,6 @@ export function buildApp({ dbPath, publicDir, publicUrl, mailer, allowedEmails =
     })
 
     api.get('/me', async (request) => request.user)
-    api.post('/access/trial', async (request, reply) => {
-      if (request.user.access.plus) return reply.code(409).send({ error: 'already_plus' })
-      const now = Date.now()
-      const account = db.accounts.startTrial(request.user.login, now, now + TRIAL_DURATION)
-      if (!account) return reply.code(409).send({ error: 'trial_used' })
-      return accountUser(account, now)
-    })
 
     api.get('/content', async (request, reply) => {
       if (!request.user.access.plus) return reply.code(403).send({ error: 'plus_required' })
@@ -146,9 +141,11 @@ export function buildApp({ dbPath, publicDir, publicUrl, mailer, allowedEmails =
     })
 
     // Paiement : de quoi ouvrir Paddle.js (jeton client, environnement, prix), puis l'espace client Paddle.
+    // prices : prix affichés ; trial : prix avec essai à ouvrir au paiement, pour un compte qui n'a jamais été abonné.
     api.get('/paddle/config', async (request, reply) => {
       if (!paddle) return reply.code(404).send({ error: 'paddle_disabled' })
-      return { environment: paddle.environment, clientToken: paddle.clientToken, prices: paddle.prices }
+      const trial = request.user.access.trialAvailable ? { days: TRIAL_DAYS, prices: paddle.trialPrices } : null
+      return { environment: paddle.environment, clientToken: paddle.clientToken, prices: paddle.prices, trial }
     })
     api.post('/paddle/portal', async (request, reply) => {
       const account = db.accounts.get(request.user.login)

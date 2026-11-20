@@ -61,8 +61,6 @@ test('connexion par code : la session donne acces a la progression de l adresse'
       plan: 'free',
       source: 'free',
       trialAvailable: true,
-      trialStartedAt: null,
-      trialExpiresAt: null,
       plusExpiresAt: null,
       subscription: null,
     },
@@ -139,20 +137,6 @@ test('next ne peut pas renvoyer vers un autre site', async () => {
   assert.equal(new URL(sent[0].link).searchParams.get('next'), '/')
 })
 
-test('essai Yidiano+ : sept jours, une seule activation', async () => {
-  const cookie = await signIn('a@x.fr')
-  const trial = await post('/api/access/trial', undefined, cookie)
-  assert.equal(trial.statusCode, 200)
-  assert.equal(trial.json().access.plus, true)
-  assert.equal(trial.json().access.source, 'trial')
-  assert.equal(trial.json().access.trialAvailable, false)
-  assert.equal(trial.json().access.trialExpiresAt - trial.json().access.trialStartedAt, 7 * 24 * 3600_000)
-
-  const again = await post('/api/access/trial', undefined, cookie)
-  assert.equal(again.statusCode, 409)
-  assert.deepEqual(again.json(), { error: 'already_plus' })
-})
-
 test('administration : seul un admin peut attribuer les roles', async () => {
   const adminCookie = await signIn('a@x.fr')
   const userCookie = await signIn('b@x.fr')
@@ -201,17 +185,20 @@ test('la page de connexion est servie sans session', async () => {
   assert.equal((await app.inject({ url: '/login/' })).statusCode, 200)
 })
 
-test('contenu Yidiano+ : refusé à la formule gratuite, servi pendant l essai', async () => {
+test('contenu Yidiano+ : refusé à la formule gratuite, servi pendant l abonnement', async () => {
   const cookie = await signIn('a@x.fr')
   assert.equal((await app.inject({ url: '/api/content', headers: { cookie } })).statusCode, 403)
 
-  await post('/api/access/trial', {}, cookie)
+  const db = new DatabaseSync(dbPath)
+  db.prepare("UPDATE accounts SET plus_expires_at = ? WHERE email = 'a@x.fr'").run(Date.now() + 3600_000)
+  db.close()
   const res = await app.inject({ url: '/api/content', headers: { cookie } })
   assert.equal(res.statusCode, 200)
   const { version, grammar, readings } = res.json()
   assert.match(version, /^[0-9a-f]{16}$/)
-  assert.ok(grammar.length > 0 && grammar.every(point => point.level > 1 && point.explanation))
-  assert.ok(readings.length > 0 && readings.every(reading => reading.lines?.length && !['jieshao', 'fanguan'].includes(reading.id)))
+  // Grammaire et lectures entièrement Yidiano+ : HSK 1 et premiers dialogues compris.
+  assert.ok(grammar.some(point => point.level === 1) && grammar.every(point => point.explanation))
+  assert.ok(readings.some(reading => reading.id === 'jieshao') && readings.every(reading => reading.lines?.length))
 })
 
 test('suppression du compte : confirmation par l adresse, puis progression et sessions effacées', async () => {

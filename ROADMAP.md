@@ -58,7 +58,8 @@ Objectif à terme : vendre l'application de chinois seule (sans l'italien), en f
 ## Bêta en cours (décidé le 16/11/2026)
 
 L'app reste en bêta sur invitation : https://yidiano.com, connexion par e-mail, rôles `admin` / `beta` / `user`,
-version gratuite et essai Yidiano+ de 7 jours en place (voir [COMMERCIALISATION.md](COMMERCIALISATION.md)). Rien
+version gratuite (pinyin, vocabulaire HSK 1 à 2 tests par jour, 10 caractères) et essai Yidiano+ de 15 jours avec carte
+en place (voir [COMMERCIALISATION.md](COMMERCIALISATION.md)). Rien
 n'est vendu tant que les tâches « Avant de vendre » ne sont pas faites.
 
 Pendant la bêta :
@@ -71,7 +72,7 @@ Pendant la bêta :
 
 ## Avant de vendre
 
-Abonnement, web d'abord, version gratuite et essai de 7 jours, parrainage, entreprise individuelle au régime
+Abonnement, web d'abord, version gratuite et essai de 15 jours avec carte, parrainage, entreprise individuelle au régime
 micro-entreprise et paiement Paddle décidés. Nom, domaine et détails : voir [COMMERCIALISATION.md](COMMERCIALISATION.md).
 
 - **Prix** : 7,99 €/mois et 59,99 €/an TTC (prix Paddle, TVA incluse).
@@ -81,10 +82,12 @@ micro-entreprise et paiement Paddle décidés. Nom, domaine et détails : voir [
   Paddle à corriger (« RoneTrade » → Erwan Houadec, affichage Yidiano ; demande envoyée à sellers@paddle.com, réponse
   attendue), puis un vrai paiement de test : compte `erwanhouadec1506+paddle@gmail.com` (rôle `user`, déjà invité),
   abonnement mensuel payé avec une vraie carte, accès Yidiano+ vérifié, remboursement, résiliation et retrait de
-  l'adresse des invités.
+  l'adresse des invités. Essai : prix Paddle avec 15 jours d'essai et carte obligatoire créés le 20/11/2026
+  (`pri_01m7wm9ggs1px5ryc0vcv6bdne` mensuel, `pri_01m7wm9gpvmnter9jrhkbkyvqq` annuel) ; le tester avec un compte
+  jamais abonné (le compte `+paddle` a déjà eu un abonnement, l'essai ne lui est plus proposé).
 - **Bêta-testeurs** : premier mois offert au lancement, puis rôle `user`.
-- **Contenu payant protégé** : fait pour la grammaire, les lectures et les niveaux HSK 2+ ; ils sont servis par
-  `/api/content` aux seuls comptes autorisés et ne sont plus lisibles dans le code de l'app.
+- **Contenu payant protégé** : grammaire et lectures servies par `/api/content` aux seuls comptes Yidiano+, absentes
+  du code de l'app. Vocabulaire et caractères restent dans l'app (verrouillés côté client).
 - **Inscriptions ouvertes** : limite d'envois par IP faite ; retirer la liste d'invités (`AUTH_ALLOWED_EMAILS`) une
   fois le paiement testé. Les bêta-testeurs gardent leur rôle `beta` (enregistré dans la base, pas dans la liste).
 - **Comptes** : connexion par e-mail faite ; restent Google, puis Apple.

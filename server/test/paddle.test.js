@@ -11,7 +11,7 @@ import { GRACE } from '../paddle.js'
 const SECRET = 'pdl_ntfset_test'
 const paddle = {
   environment: 'sandbox', apiUrl: 'https://sandbox-api.paddle.com', apiKey: 'k', clientToken: 'test_token',
-  webhookSecret: SECRET, prices: { monthly: 'pri_m', yearly: 'pri_y' },
+  webhookSecret: SECRET, prices: { monthly: 'pri_m', yearly: 'pri_y' }, trialPrices: { monthly: 'pri_mt', yearly: 'pri_yt' },
 }
 
 let app
@@ -51,12 +51,12 @@ function webhook(event, { secret = SECRET, ts = Math.floor(Date.now() / 1000) } 
 
 const day = 24 * 3600_000
 const iso = (t) => new Date(t).toISOString()
-function subscriptionEvent(type, { occurredAt, status = 'active', endsAt, email = 'a@x.fr', id = 'sub_1', cancelAt } = {}) {
+function subscriptionEvent(type, { occurredAt, status = 'active', endsAt, email = 'a@x.fr', id = 'sub_1', cancelAt, customer = 'ctm_1' } = {}) {
   return {
     event_type: type,
     occurred_at: iso(occurredAt),
     data: {
-      id, status, customer_id: 'ctm_1', custom_data: { email },
+      id, status, customer_id: customer, custom_data: { email },
       current_billing_period: endsAt ? { starts_at: iso(endsAt - 30 * day), ends_at: iso(endsAt) } : null,
       scheduled_change: cancelAt ? { action: 'cancel', effective_at: iso(cancelAt) } : null,
     },
@@ -122,9 +122,37 @@ test('la fin d abonnement d un compte supprimé ne recrée pas le compte', async
   db.close()
 })
 
-test('configuration du paiement : réservée aux comptes connectés, sans le secret', async () => {
+test('configuration du paiement : réservée aux comptes connectés, sans le secret ; essai jusqu au premier abonnement', async () => {
   assert.equal((await app.inject({ url: '/api/paddle/config' })).statusCode, 401)
   const cookie = await signIn('a@x.fr')
-  const config = (await app.inject({ url: '/api/paddle/config', headers: { cookie } })).json()
-  assert.deepEqual(config, { environment: 'sandbox', clientToken: 'test_token', prices: { monthly: 'pri_m', yearly: 'pri_y' } })
+  const config = async () => (await app.inject({ url: '/api/paddle/config', headers: { cookie } })).json()
+  assert.deepEqual(await config(), {
+    environment: 'sandbox', clientToken: 'test_token', prices: { monthly: 'pri_m', yearly: 'pri_y' },
+    trial: { days: 15, prices: { monthly: 'pri_mt', yearly: 'pri_yt' } },
+  })
+
+  // Essai résilié avant sa fin : l'accès se ferme et aucun second essai n'est proposé.
+  const now = Date.now()
+  await webhook(subscriptionEvent('subscription.canceled', { occurredAt: now, status: 'canceled' }))
+  assert.equal((await me(cookie)).access.plus, false)
+  assert.equal((await me(cookie)).access.trialAvailable, false)
+  assert.equal((await config()).trial, null)
+})
+
+test('essai Paddle avec carte : Yidiano+ ouvert jusqu a la fin de l essai, premier prélèvement à cette date', async () => {
+  const cookie = await signIn('a@x.fr')
+  const trialEnd = Date.now() + 15 * day
+  await webhook(subscriptionEvent('subscription.created', { occurredAt: Date.now(), status: 'trialing', endsAt: trialEnd }))
+  await webhook(subscriptionEvent('subscription.created', {
+    occurredAt: Date.now(), status: 'trialing', endsAt: trialEnd, email: 'new@x.fr', id: 'sub_2', customer: 'ctm_2',
+  }))
+
+  const { access } = await me(cookie)
+  assert.equal(access.plus, true)
+  assert.equal(access.trialAvailable, false)
+  assert.deepEqual(access.subscription, { status: 'trialing', cancelAt: null, renewsAt: trialEnd })
+  // Un essai pris sans compte Yidiano crée le compte, comme un abonnement payé.
+  const db = new DatabaseSync(join(dir, 'test.db'), { readOnly: true })
+  assert.equal(db.prepare("SELECT count(*) AS n FROM accounts WHERE email = 'new@x.fr'").get().n, 1)
+  db.close()
 })

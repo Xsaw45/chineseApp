@@ -1,13 +1,12 @@
 import { useState } from 'react'
 import { Check } from 'lucide-react'
 import { CHARS_BY_RADICAL, charSenses } from '../data/hanzi.js'
-import { canUseRadical } from '../access/rules.js'
 import {
   QUIZ_RADICALS, RADICAL_QUIZ_SIZE, buildRadicalQuiz, displayForms, getRadicalProgress,
 } from '../utils/hanziQuiz.js'
 import { applyFailure, applySuccess, isActive, isDueForReview } from '../utils/spacedrep.js'
 import { useLang } from '../i18n/useLang.js'
-import { Button, Feedback, PlusBadge, ProgressBar, Score, Screen, SectionLabel, TopBar } from './ui.jsx'
+import { Button, Feedback, ProgressBar, Score, Screen, SectionLabel, TopBar } from './ui.jsx'
 import { ICON_SM, optionClass } from './uiStyles.js'
 
 function Status({ progress }) {
@@ -127,11 +126,11 @@ export function RadicalQuiz({ questions, progressMap, applyUpdates, onExit, onRe
   )
 }
 
-export function RadicalsPage({ hasPlus, onUpgrade, progressMap, applyUpdates, onBack }) {
+/** Module Yidiano+ : ouvert seulement avec l'accès complet (canOpenModule, src/access/rules.js). */
+export function RadicalsPage({ progressMap, applyUpdates, onBack }) {
   const { t, l } = useLang()
   const [quiz, setQuiz] = useState(null) // { id, questions } pendant un test
-  const available = QUIZ_RADICALS.filter(radical => canUseRadical(radical, hasPlus))
-  const startQuiz = () => setQuiz(q => ({ id: (q?.id ?? 0) + 1, questions: buildRadicalQuiz(progressMap, available) }))
+  const startQuiz = () => setQuiz(q => ({ id: (q?.id ?? 0) + 1, questions: buildRadicalQuiz(progressMap, QUIZ_RADICALS) }))
 
   if (quiz) {
     return (
@@ -146,7 +145,7 @@ export function RadicalsPage({ hasPlus, onUpgrade, progressMap, applyUpdates, on
     )
   }
 
-  const known = available.filter(r => getRadicalProgress(progressMap, r).known).length
+  const known = QUIZ_RADICALS.filter(r => getRadicalProgress(progressMap, r).known).length
 
   return (
     <Screen>
@@ -155,13 +154,13 @@ export function RadicalsPage({ hasPlus, onUpgrade, progressMap, applyUpdates, on
       <div className="border-b border-line px-5 py-6">
         <p className="text-[15px] leading-relaxed text-fg">{t('rad.intro')}</p>
         <Button onClick={startQuiz} className="mt-5">{t('rad.test', { n: RADICAL_QUIZ_SIZE })}</Button>
-        <p className="mt-3 text-center text-sm tabular-nums text-fg-3">{t('rad.progress', { known, total: available.length })}</p>
+        <p className="mt-3 text-center text-sm tabular-nums text-fg-3">{t('rad.progress', { known, total: QUIZ_RADICALS.length })}</p>
       </div>
 
       <div className="flex-1 px-5 pb-8">
         <SectionLabel className="mt-8">{t('rad.list')}</SectionLabel>
         <ul className="divide-y divide-line rounded-2xl border border-line bg-card">
-          {available.map(r => (
+          {QUIZ_RADICALS.map(r => (
             <li key={r.n} className="flex items-center gap-4 p-4">
               <p className="hanzi-display w-20 shrink-0 whitespace-nowrap text-center text-[26px] leading-none text-fg">{displayForms(r).join(' ')}</p>
               <div className="min-w-0 flex-1">
@@ -175,14 +174,6 @@ export function RadicalsPage({ hasPlus, onUpgrade, progressMap, applyUpdates, on
               </div>
             </li>
           ))}
-          {!hasPlus && (
-            <li>
-              <button type="button" onClick={onUpgrade} className="flex w-full items-center justify-between p-4 text-left">
-                <span className="text-sm text-fg-3">{t('plus.locked')}</span>
-                <PlusBadge />
-              </button>
-            </li>
-          )}
         </ul>
       </div>
     </Screen>

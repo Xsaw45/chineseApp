@@ -1,28 +1,33 @@
 import { useLayoutEffect, useRef, useState } from 'react'
 import { ChevronRight, Lock } from 'lucide-react'
 import { HANZI, HANZI_LEVELS, charsForLevel, getChar, hanziLevelLabel } from '../data/hanzi.js'
-import { canUseHanziLevel } from '../access/rules.js'
+import { canOpenModule, canUseHanzi, canUseHanziLevel } from '../access/rules.js'
 import { HANZI_PRACTICE_SIZE, buildHanziPractice, currentHanziLevel, getCharProgress } from '../utils/hanziQuiz.js'
 import { isDueForReview } from '../utils/spacedrep.js'
 import { useLang } from '../i18n/useLang.js'
 import { CharacterDetail } from './CharacterDetail.jsx'
 import { CharacterPractice } from './CharacterPractice.jsx'
 import { RadicalsPage } from './RadicalsPage.jsx'
-import { Button, Screen, TopBar } from './ui.jsx'
+import { Button, PlusBadge, Screen, TopBar } from './ui.jsx'
 import { ICON } from './uiStyles.js'
 
-/** Case de la grille : bordure verte maîtrisé, rouge à réviser, trait d'avancement en cours d'apprentissage. */
-function CharTile({ ch, progress, onOpen }) {
+/**
+ * Case de la grille : bordure verte maîtrisé, rouge à réviser, trait d'avancement en cours d'apprentissage ;
+ * locked : caractère Yidiano+ vu depuis la formule gratuite (estompé, cadenas, ouvre Yidiano+).
+ */
+function CharTile({ ch, progress, locked, onOpen }) {
+  const { t } = useLang()
   const state = progress.known ? (isDueForReview(progress) ? 'due' : 'known') : progress.successCount > 0 ? 'learning' : 'new'
   const border = { known: 'border-good/40', due: 'border-accent/60', learning: 'border-line-2', new: 'border-line' }[state]
   return (
     <button
       type="button"
       onClick={onOpen}
-      className={`relative flex aspect-square items-center justify-center rounded-xl border bg-card transition-colors duration-150 ease-out hover:bg-raised ${border}`}
+      className={`relative flex aspect-square items-center justify-center rounded-xl border transition-colors duration-150 ease-out hover:bg-raised ${locked ? 'border-line bg-page' : `bg-card ${border}`}`}
     >
-      <span className={`hanzi-display text-[28px] leading-none ${state === 'known' ? 'text-fg-2' : 'text-fg'}`}>{ch.c}</span>
-      {state === 'learning' && (
+      <span className={`hanzi-display text-[28px] leading-none ${locked ? 'text-fg-3/60' : state === 'known' ? 'text-fg-2' : 'text-fg'}`}>{ch.c}</span>
+      {locked && <Lock size={11} strokeWidth={2} className="absolute top-1.5 right-1.5 text-fg-3" aria-label={t('plus.locked')} />}
+      {!locked && state === 'learning' && (
         <span className="absolute inset-x-2 bottom-1.5 h-0.5 overflow-hidden rounded-full bg-raised-2">
           <span className="block h-full bg-accent" style={{ width: `${(progress.successCount / 3) * 100}%` }} />
         </span>
@@ -33,9 +38,10 @@ function CharTile({ ch, progress, onOpen }) {
 
 export function CharactersPage({ hasPlus, onUpgrade, progressMap, applyUpdates, onBack }) {
   const { t } = useLang()
-  // Niveau affiché : le niveau en cours, limité au HSK 1 en accès gratuit.
+  // Niveau affiché : le niveau en cours, limité au HSK 1 en accès gratuit (et à ses premiers caractères, FREE_HANZI).
   const [level, setLevel] = useState(() => hasPlus ? currentHanziLevel(progressMap) : 1)
-  const candidates = hasPlus ? HANZI : charsForLevel(1)
+  const candidates = HANZI.filter(ch => canUseHanzi(ch, hasPlus))
+  const radicalsOpen = canOpenModule('radicals', hasPlus)
   // 'list' | 'radicals' | { char } | { practice, id }
   const [view, setView] = useState('list')
 
@@ -53,7 +59,7 @@ export function CharactersPage({ hasPlus, onUpgrade, progressMap, applyUpdates, 
   const startPractice = () => open({ practice: buildHanziPractice(progressMap, level, candidates), id: (view.id ?? 0) + 1 })
 
   if (view.char) return <CharacterDetail ch={getChar(view.char)} onBack={toList} />
-  if (view === 'radicals') return <RadicalsPage hasPlus={hasPlus} onUpgrade={onUpgrade} progressMap={progressMap} applyUpdates={applyUpdates} onBack={toList} />
+  if (view === 'radicals' && radicalsOpen) return <RadicalsPage progressMap={progressMap} applyUpdates={applyUpdates} onBack={toList} />
   if (view.practice) {
     return (
       <CharacterPractice
@@ -68,7 +74,8 @@ export function CharactersPage({ hasPlus, onUpgrade, progressMap, applyUpdates, 
   }
 
   const chars = charsForLevel(level)
-  const known = chars.filter(ch => getCharProgress(progressMap, ch).known).length
+  const usable = chars.filter(ch => canUseHanzi(ch, hasPlus))
+  const known = usable.filter(ch => getCharProgress(progressMap, ch).known).length
   const canPractice = buildHanziPractice(progressMap, level, candidates).length > 0
 
   return (
@@ -98,25 +105,35 @@ export function CharactersPage({ hasPlus, onUpgrade, progressMap, applyUpdates, 
         </div>
         <Button onClick={startPractice} disabled={!canPractice} className="mt-5">{t('hz.practice', { n: HANZI_PRACTICE_SIZE })}</Button>
         <p className="mt-3 text-center text-sm tabular-nums text-fg-3">
-          {canPractice ? t('hz.progress', { known, total: chars.length }) : t('hz.allDone')}
+          {canPractice ? t('hz.progress', { known, total: usable.length }) : t('hz.allDone')}
         </p>
       </div>
 
       <div className="flex-1 px-5 pb-8">
         <button
           type="button"
-          onClick={() => open('radicals')}
-          className="mt-6 flex w-full items-center gap-3 rounded-2xl border border-line bg-card p-4 text-left transition-colors duration-150 ease-out hover:bg-raised"
+          onClick={() => radicalsOpen ? open('radicals') : onUpgrade()}
+          className={`mt-6 flex w-full items-center gap-3 rounded-2xl border border-line p-4 text-left transition-colors duration-150 ease-out hover:bg-raised ${radicalsOpen ? 'bg-card' : 'bg-page'}`}
         >
-          <span className="hanzi-display text-2xl text-accent">氵讠扌</span>
-          <span className="flex-1 text-[15px] font-medium text-fg">{t('hz.radicals')} <span className="chinese-text text-fg-2">部首</span></span>
-          <ChevronRight {...ICON} className="text-fg-3" />
+          <span className={`hanzi-display text-2xl ${radicalsOpen ? 'text-accent' : 'text-fg-3'}`}>氵讠扌</span>
+          <span className={`flex-1 text-[15px] font-medium ${radicalsOpen ? 'text-fg' : 'text-fg-2'}`}>{t('hz.radicals')} <span className="chinese-text text-fg-2">部首</span></span>
+          {radicalsOpen ? <ChevronRight {...ICON} className="text-fg-3" /> : <PlusBadge />}
         </button>
 
-        <div className="mt-6 grid grid-cols-6 gap-2">
-          {chars.map(ch => (
-            <CharTile key={ch.c} ch={ch} progress={getCharProgress(progressMap, ch)} onOpen={() => open({ char: ch.c })} />
-          ))}
+        {!hasPlus && <p className="mt-6 text-sm text-fg-3">{t('hz.freeLimit', { n: usable.length })}</p>}
+        <div className={`grid grid-cols-6 gap-2 ${hasPlus ? 'mt-6' : 'mt-3'}`}>
+          {chars.map(ch => {
+            const locked = !canUseHanzi(ch, hasPlus)
+            return (
+              <CharTile
+                key={ch.c}
+                ch={ch}
+                progress={getCharProgress(progressMap, ch)}
+                locked={locked}
+                onOpen={() => locked ? onUpgrade() : open({ char: ch.c })}
+              />
+            )
+          })}
         </div>
       </div>
     </Screen>

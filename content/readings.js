@@ -1,6 +1,6 @@
 // Lecture : petits textes et dialogues du quotidien, gradués par niveau HSK (vocabulaire du niveau visé pour l’essentiel).
-// Données pures, sans import. Contenu rédigé, en partie payant : seuls les textes de FREE_READING_IDS sont dans le code
-// de l'app ; les autres sont servis par le serveur aux comptes Yidiano+ (content/split.js, /api/content).
+// Données pures, sans import. Contenu rédigé Yidiano+ : seul le résumé des textes est dans le code de l'app ; le
+// contenu est servi par le serveur aux comptes Yidiano+ (content/split.js, /api/content).
 // Textes affichés : { fr, en } (langue de l'utilisateur).
 //
 // Texte : { id, level, kind: 'dialogue' | 'text', title, zh (titre chinois), speakers?, voice?, lines, questions }
@@ -13,9 +13,6 @@
 //             chaque mot se touche pour voir son sens).
 //             reorder : la phrase sert d'exercice « remettre dans l'ordre » ; alt : autres ordres corrects (sans espaces).
 //   questions [{ q, a: [bonne réponse, 3 mauvaises], line }] : compréhension ; line = réplique qui donne la réponse.
-
-export const FREE_READING_IDS = new Set(['jieshao', 'fanguan'])
-export const isFreeReading = reading => FREE_READING_IDS.has(reading.id)
 
 export const READINGS = [
   {

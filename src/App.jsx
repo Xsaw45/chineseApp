@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useAccess } from './access/context.js'
-import { withActivity, markStepDone, addPracticeTime } from './utils/activity.js'
+import { canOpenModule, FREE_VOCAB_TESTS_PER_DAY } from './access/rules.js'
+import { withActivity, markStepDone, addPracticeTime, countVocabTest, vocabTestsToday } from './utils/activity.js'
 import { PLACEMENT_KEY } from './utils/levelTest.js'
 import { VocabLevelTest } from './components/VocabLevelTest.jsx'
 import { LanguageChoice } from './components/LanguageChoice.jsx'
@@ -82,7 +83,18 @@ export default function App() {
   const practicing = !loading && !accessLoading && (state !== QUIZ_STATES.IDLE || !['home', 'settings', 'plus', 'admin'].includes(screen))
   usePracticeTime(practicing, seconds => saveUpdates([addPracticeTime(latestMap(), seconds)]))
 
+  // Formule gratuite : FREE_VOCAB_TESTS_PER_DAY tests de vocabulaire par jour, comptés dès leur lancement ; au-delà,
+  // l'écran Yidiano+ s'ouvre. null : pas de limite.
+  const vocabTestsLeft = hasPlus ? null : Math.max(0, FREE_VOCAB_TESTS_PER_DAY - vocabTestsToday(progressMap))
+  const startVocabQuiz = () => {
+    if (!hasPlus && vocabTestsToday(latestMap()) >= FREE_VOCAB_TESTS_PER_DAY) return openPlus('hsk')
+    if (startQuiz(accessibleLevels) && !hasPlus) saveUpdates([countVocabTest(latestMap())])
+  }
+
   const home = () => setScreen('home')
+  // Module Yidiano+ sans l'accès (fin d'abonnement, aperçu gratuit de l'admin) : retour à l'accueil.
+  const view = canOpenModule(screen, hasPlus) ? screen : 'home'
+  const openModule = module => (canOpenModule(module, hasPlus) ? setScreen(module) : openPlus('home'))
   let content
 
   if (loading || accessLoading) {
@@ -97,7 +109,7 @@ export default function App() {
         results={results}
         onRestart={() => {
           resetQuiz()
-          setTimeout(() => startQuiz(accessibleLevels), 0)
+          setTimeout(startVocabQuiz, 0)
         }}
         onHome={() => {
           if (screen === 'today') applyUpdates([markStepDone(progressMap, 'vocab')])
@@ -144,27 +156,27 @@ export default function App() {
         onQuit={resetQuiz}
       />
     )
-  } else if (screen === 'vocabulary') {
+  } else if (view === 'vocabulary') {
     content = <VocabularyPage hasPlus={hasPlus} onUpgrade={() => openPlus('vocabulary')} onBack={() => setScreen('hsk')} />
-  } else if (screen === 'classifiers') {
-    content = <ClassifiersPage hasPlus={hasPlus} onUpgrade={() => openPlus('classifiers')} progressMap={progressMap} applyUpdates={applyUpdates} onBack={home} />
-  } else if (screen === 'pinyin') {
+  } else if (view === 'classifiers') {
+    content = <ClassifiersPage progressMap={progressMap} applyUpdates={applyUpdates} onBack={home} />
+  } else if (view === 'pinyin') {
     content = <PinyinPage progressMap={progressMap} applyUpdates={applyUpdates} onBack={home} />
-  } else if (screen === 'hanzi') {
+  } else if (view === 'hanzi') {
     content = <CharactersPage hasPlus={hasPlus} onUpgrade={() => openPlus('hanzi')} progressMap={progressMap} applyUpdates={applyUpdates} onBack={home} />
-  } else if (screen === 'grammar') {
+  } else if (view === 'grammar') {
     content = <GrammarPage hasPlus={hasPlus} onUpgrade={() => openPlus('grammar')} progressMap={progressMap} applyUpdates={applyUpdates} onBack={home} />
-  } else if (screen === 'reading') {
+  } else if (view === 'reading') {
     content = <ReadingPage hasPlus={hasPlus} onUpgrade={() => openPlus('reading')} progressMap={progressMap} applyUpdates={applyUpdates} onBack={home} />
-  } else if (screen === 'settings') {
+  } else if (view === 'settings') {
     content = <SettingsPage onBack={home} onOpenPlus={() => openPlus('settings')} onOpenAdmin={() => setScreen('admin')} />
-  } else if (screen === 'plus') {
+  } else if (view === 'plus') {
     content = <PlusPage onBack={() => setScreen(plusBack)} />
-  } else if (screen === 'admin') {
+  } else if (view === 'admin') {
     content = <AdminPage onBack={() => setScreen('settings')} />
-  } else if (screen === 'today') {
-    content = <TodayPage hasPlus={hasPlus} progressMap={progressMap} applyUpdates={applyUpdates} onBack={home} onStartVocab={() => startQuiz(accessibleLevels)} />
-  } else if (screen === 'hsk') {
+  } else if (view === 'today') {
+    content = <TodayPage progressMap={progressMap} applyUpdates={applyUpdates} onBack={home} onStartVocab={startVocabQuiz} />
+  } else if (view === 'hsk') {
     content = (
       <Dashboard
         hasPlus={hasPlus}
@@ -173,9 +185,10 @@ export default function App() {
         unlockedLevels={unlockedLevels}
         progressMap={progressMap}
         placementDone={placementDone}
+        testsLeft={vocabTestsLeft}
         onStartPlacement={() => setLevelTest({ mode: 'placement' })}
         onStartUnlockTest={level => setLevelTest({ mode: 'unlock', level })}
-        onStartQuiz={() => startQuiz(accessibleLevels)}
+        onStartQuiz={startVocabQuiz}
         onOpenVocabulary={() => setScreen('vocabulary')}
         onBack={home}
       />
@@ -187,13 +200,13 @@ export default function App() {
         progressMap={progressMap}
         showPlacement={newLearner}
         onStartPlacement={() => setLevelTest({ mode: 'placement' })}
-        onOpenToday={() => setScreen('today')}
+        onOpenToday={() => openModule('today')}
         onOpenPinyin={() => setScreen('pinyin')}
         onOpenVocabulary={() => setScreen('hsk')}
         onOpenCharacters={() => setScreen('hanzi')}
-        onOpenGrammar={() => setScreen('grammar')}
-        onOpenReading={() => setScreen('reading')}
-        onOpenClassifiers={() => setScreen('classifiers')}
+        onOpenGrammar={() => openModule('grammar')}
+        onOpenReading={() => openModule('reading')}
+        onOpenClassifiers={() => openModule('classifiers')}
         onOpenSettings={() => setScreen('settings')}
         hasPlus={hasPlus}
       />

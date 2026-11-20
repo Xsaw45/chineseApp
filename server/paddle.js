@@ -5,18 +5,23 @@ import { createHmac, timingSafeEqual } from 'node:crypto'
  * Le client ouvre le paiement avec Paddle.js (jeton client) ; Paddle prévient le serveur par webhook à chaque
  * changement d'abonnement, et le serveur ouvre Yidiano+ (accounts.plus_expires_at) jusqu'à la fin de la période
  * payée, plus GRACE (prélèvement en échec en cours de relance, webhook en retard).
+ * Essai : prix Paddle avec trial_period (TRIAL_DAYS jours, carte demandée, prélèvement automatique à la fin), proposés
+ * une fois par compte (accessFor, server/access.js : trialAvailable). Pendant l'essai, l'abonnement est « trialing ».
  * Environnement : PADDLE_ENV = sandbox (tests) ou production.
  */
 
 export const GRACE = 3 * 24 * 3600_000
+// Durée de l'essai des prix PADDLE_PRICE_*_TRIAL (trial_period dans Paddle) : à changer avec eux.
+export const TRIAL_DAYS = 15
 const SIGNATURE_TOLERANCE = 5 * 60_000
 const API = { sandbox: 'https://sandbox-api.paddle.com', production: 'https://api.paddle.com' }
-// Statuts Paddle qui donnent accès jusqu'à la fin de la période en cours.
+// Statuts Paddle qui donnent accès jusqu'à la fin de la période en cours (pendant l'essai : la fin de l'essai).
 const ACTIVE = new Set(['active', 'trialing', 'past_due'])
 
 /** Configuration lue dans l'environnement ; null si Paddle n'est pas configuré (l'app affiche « bientôt »). */
 export function paddleConfig(env) {
-  const keys = ['PADDLE_API_KEY', 'PADDLE_CLIENT_TOKEN', 'PADDLE_WEBHOOK_SECRET', 'PADDLE_PRICE_MONTHLY', 'PADDLE_PRICE_YEARLY']
+  const keys = ['PADDLE_API_KEY', 'PADDLE_CLIENT_TOKEN', 'PADDLE_WEBHOOK_SECRET', 'PADDLE_PRICE_MONTHLY', 'PADDLE_PRICE_YEARLY',
+    'PADDLE_PRICE_MONTHLY_TRIAL', 'PADDLE_PRICE_YEARLY_TRIAL']
   if (!keys.every(key => env[key])) return null
   const environment = env.PADDLE_ENV === 'production' ? 'production' : 'sandbox'
   return {
@@ -26,6 +31,7 @@ export function paddleConfig(env) {
     clientToken: env.PADDLE_CLIENT_TOKEN,
     webhookSecret: env.PADDLE_WEBHOOK_SECRET,
     prices: { monthly: env.PADDLE_PRICE_MONTHLY, yearly: env.PADDLE_PRICE_YEARLY },
+    trialPrices: { monthly: env.PADDLE_PRICE_MONTHLY_TRIAL, yearly: env.PADDLE_PRICE_YEARLY_TRIAL },
   }
 }
 

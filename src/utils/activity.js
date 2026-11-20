@@ -1,11 +1,12 @@
 import { addDays, today } from './spacedrep.js'
 
-// Activité : un enregistrement synchronisé par jour, act_AAAA-MM-JJ → { practiced, learned, done, seconds }.
-//   practiced : au moins une réponse enregistrée ce jour-là (le jour compte pour la série). Absent : enregistrement
-//               d'avant ce champ, toujours créé par une réponse, donc pratiqué.
-//   learned   : éléments devenus maîtrisés ce jour-là (mots, caractères, classificateurs, clés)
-//   done      : étapes de la séance « Aujourd'hui » terminées ce jour-là (voir today.js)
-//   seconds   : temps passé à pratiquer (voir hooks/usePracticeTime.js)
+// Activité : un enregistrement synchronisé par jour, act_AAAA-MM-JJ → { practiced, learned, done, seconds, vocabTests }.
+//   practiced  : au moins une réponse enregistrée ce jour-là (le jour compte pour la série). Absent : enregistrement
+//                d'avant ce champ, toujours créé par une réponse, donc pratiqué.
+//   learned    : éléments devenus maîtrisés ce jour-là (mots, caractères, classificateurs, clés)
+//   done       : étapes de la séance « Aujourd'hui » terminées ce jour-là (voir today.js)
+//   seconds    : temps passé à pratiquer (voir hooks/usePracticeTime.js)
+//   vocabTests : tests de vocabulaire lancés ce jour-là (limite de la formule gratuite, access/rules.js)
 // Un enregistrement par jour : deux appareils qui pratiquent des jours différents ne s'écrasent pas.
 
 const PREFIX = 'act_'
@@ -45,6 +46,14 @@ export function markStepDone(progressMap, step) {
 export function addPracticeTime(progressMap, seconds) {
   const record = dayRecord(progressMap, today())
   return { ...record, seconds: (record.seconds || 0) + seconds }
+}
+
+export const vocabTestsToday = progressMap => dayRecord(progressMap, today()).vocabTests || 0
+
+/** Un test de vocabulaire de plus aujourd'hui (ne rend pas le jour pratiqué à lui seul). */
+export function countVocabTest(progressMap) {
+  const record = dayRecord(progressMap, today())
+  return { ...record, vocabTests: (record.vocabTests || 0) + 1 }
 }
 
 export const doneToday = progressMap => new Set(dayRecord(progressMap, today()).done)

@@ -4,7 +4,7 @@ import { PINYIN_LESSONS } from '../data/pinyinLessons.js'
 import { GRAMMAR_POINTS } from '../data/grammar.js'
 import { HANZI } from '../data/hanzi.js'
 import { READINGS } from '../data/reading.js'
-import { canUseClassifier, canUseGrammarPoint, canUseHanziLevel, canUseReading, canUseVocabLevel } from '../access/rules.js'
+import { canOpenModule, canUseGrammarPoint, canUseHanzi, canUseReading, canUseVocabLevel } from '../access/rules.js'
 import { getClassifierProgress } from '../utils/classifierQuiz.js'
 import { getLessonProgress } from '../utils/pinyinQuiz.js'
 import { getPointProgress } from '../utils/grammarQuiz.js'
@@ -14,42 +14,47 @@ import { isLessonPassed } from '../utils/lessonProgress.js'
 import { useLang } from '../i18n/useLang.js'
 import { TodayCard } from './TodayPage.jsx'
 import { PlacementInvite } from './PlacementInvite.jsx'
-import { ProgressBar, Screen, Seal, TopBar } from './ui.jsx'
+import { PlusBadge, ProgressBar, Screen, Seal, TopBar } from './ui.jsx'
 import { ICON } from './uiStyles.js'
 
-function ModuleCard({ id, seal, chinese, known, total, onOpen }) {
+/** locked : module Yidiano+ vu depuis la formule gratuite (cadenas, sans progression). */
+function ModuleCard({ id, seal, chinese, known, total, locked = false, onOpen }) {
   const { t } = useLang()
   return (
     <button
       type="button"
       onClick={onOpen}
-      className="w-full rounded-2xl border border-line bg-card p-5 text-left transition-colors duration-150 ease-out hover:bg-raised active:bg-raised"
+      className={`w-full rounded-2xl border border-line p-5 text-left transition-colors duration-150 ease-out hover:bg-raised active:bg-raised ${locked ? 'bg-page' : 'bg-card'}`}
     >
       <div className="flex items-center gap-3">
         <Seal>{seal}</Seal>
-        <span className="flex-1 text-lg font-medium text-fg">
+        <span className={`flex-1 text-lg font-medium ${locked ? 'text-fg-2' : 'text-fg'}`}>
           {t(`module.${id}.title`)} <span className="chinese-text text-fg-2">{chinese}</span>
         </span>
-        <ChevronRight {...ICON} className="text-fg-3" />
+        {locked ? <PlusBadge /> : <ChevronRight {...ICON} className="text-fg-3" />}
       </div>
       <p className="mt-3 text-[15px] leading-snug text-fg-2">{t(`module.${id}.desc`)}</p>
-      <ProgressBar value={total ? known / total : 0} className="mt-4" />
-      <p className="mt-2 text-sm tabular-nums text-fg-3">{known} / {total} {t(`module.${id}.unit`)}</p>
+      {!locked && (
+        <>
+          <ProgressBar value={total ? known / total : 0} className="mt-4" />
+          <p className="mt-2 text-sm tabular-nums text-fg-3">{known} / {total} {t(`module.${id}.unit`)}</p>
+        </>
+      )}
     </button>
   )
 }
 
-/** showPlacement : nouvel utilisateur, invité au test de niveau. */
+/** showPlacement : nouvel utilisateur, invité au test de niveau. Un module verrouillé ouvre Yidiano+ (App.jsx). */
 export function ModulesHome({ hasPlus, levelStats, progressMap, showPlacement, onStartPlacement, onOpenToday, onOpenPinyin, onOpenVocabulary, onOpenCharacters, onOpenGrammar, onOpenReading, onOpenClassifiers, onOpenSettings }) {
   const { t } = useLang()
+  const locked = module => !canOpenModule(module, hasPlus)
   const availableLevels = (levelStats || []).filter(stat => canUseVocabLevel(stat.level, hasPlus))
-  const availableClassifiers = CLASSIFIERS.filter(cl => canUseClassifier(cl, hasPlus))
   const availableGrammar = GRAMMAR_POINTS.filter(point => canUseGrammarPoint(point, hasPlus))
-  const availableHanzi = HANZI.filter(ch => canUseHanziLevel(ch.level, hasPlus))
+  const availableHanzi = HANZI.filter(ch => canUseHanzi(ch, hasPlus))
   const availableReadings = READINGS.filter(reading => canUseReading(reading, hasPlus))
   const wordsKnown = availableLevels.reduce((n, s) => n + s.known, 0)
   const wordsTotal = availableLevels.reduce((n, s) => n + s.total, 0)
-  const classifiersKnown = availableClassifiers.filter(cl => getClassifierProgress(progressMap, cl).known).length
+  const classifiersKnown = CLASSIFIERS.filter(cl => getClassifierProgress(progressMap, cl).known).length
   const lessonsPassed = PINYIN_LESSONS.filter(l => isLessonPassed(getLessonProgress(progressMap, l))).length
   const pointsPassed = availableGrammar.filter(p => isLessonPassed(getPointProgress(progressMap, p))).length
   const charsKnown = availableHanzi.filter(ch => getCharProgress(progressMap, ch).known).length
@@ -79,16 +84,16 @@ export function ModulesHome({ hasPlus, levelStats, progressMap, showPlacement, o
           <p className="mt-1 text-[17px] text-fg-2">{t('home.subtitle')}</p>
         </header>
 
-        <TodayCard hasPlus={hasPlus} progressMap={progressMap} onOpen={onOpenToday} />
+        <TodayCard locked={locked('today')} progressMap={progressMap} onOpen={onOpenToday} />
         {showPlacement && <PlacementInvite onStart={onStartPlacement} className="mt-3" />}
 
         <div className="mt-6 flex flex-col gap-3">
           <ModuleCard id="pinyin" seal="拼" chinese="拼音" known={lessonsPassed} total={PINYIN_LESSONS.length} onOpen={onOpenPinyin} />
           <ModuleCard id="vocab" seal="词" chinese="词汇" known={wordsKnown} total={wordsTotal} onOpen={onOpenVocabulary} />
           <ModuleCard id="hanzi" seal="字" chinese="汉字" known={charsKnown} total={availableHanzi.length} onOpen={onOpenCharacters} />
-          <ModuleCard id="grammar" seal="语" chinese="语法" known={pointsPassed} total={availableGrammar.length} onOpen={onOpenGrammar} />
-          <ModuleCard id="reading" seal="读" chinese="阅读" known={textsPassed} total={availableReadings.length} onOpen={onOpenReading} />
-          <ModuleCard id="classifiers" seal="量" chinese="量词" known={classifiersKnown} total={availableClassifiers.length} onOpen={onOpenClassifiers} />
+          <ModuleCard id="grammar" seal="语" chinese="语法" known={pointsPassed} total={availableGrammar.length} locked={locked('grammar')} onOpen={onOpenGrammar} />
+          <ModuleCard id="reading" seal="读" chinese="阅读" known={textsPassed} total={availableReadings.length} locked={locked('reading')} onOpen={onOpenReading} />
+          <ModuleCard id="classifiers" seal="量" chinese="量词" known={classifiersKnown} total={CLASSIFIERS.length} locked={locked('classifiers')} onOpen={onOpenClassifiers} />
         </div>
       </div>
     </Screen>

@@ -15,8 +15,7 @@ function readCachedAccount() {
 function effectivePlus(account) {
   if (!account?.access?.plus) return false
   if (account.role === 'admin' || account.role === 'beta') return true
-  const expiresAt = account.access.source === 'trial' ? account.access.trialExpiresAt : account.access.plusExpiresAt
-  return expiresAt > Date.now()
+  return account.access.plusExpiresAt > Date.now()
 }
 
 export function AccessProvider({ children }) {
@@ -67,23 +66,14 @@ export function AccessProvider({ children }) {
     if (plusAllowed === false) clearPlusContent()
   }, [plusAllowed])
 
-  const startTrial = useCallback(async () => {
-    const response = await fetch('/api/access/trial', { method: 'POST' })
-    if (!response.ok) throw new Error((await response.json()).error || 'trial_failed')
-    const next = await response.json()
-    storeAccount(next)
-    return next
-  }, [storeAccount])
-
   const value = useMemo(() => ({
     account,
     loading,
     hasPlus: effectivePlus(account) && !previewFree,
     previewFree,
     setPreviewFree,
-    startTrial,
     refresh,
-  }), [account, loading, previewFree, startTrial, refresh])
+  }), [account, loading, previewFree, refresh])
 
   return <AccessContext.Provider value={value}>{children}</AccessContext.Provider>
 }

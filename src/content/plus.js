@@ -1,7 +1,7 @@
 import { CLIENT_CONTENT, PLUS_VERSION } from 'virtual:yidiano-content'
 
 /*
- * Grammaire et lectures (content/) : le code de l'app ne contient que le contenu gratuit et le résumé des éléments
+ * Grammaire et lectures (content/) : le code de l'app ne contient que le résumé des éléments
  * Yidiano+ (locked: true). Un compte Yidiano+ reçoit ces éléments du serveur (/api/content) ; ils sont gardés dans
  * localStorage pour l'usage hors ligne et remplacent les résumés au lancement suivant (syncPlusContent recharge l'app).
  */

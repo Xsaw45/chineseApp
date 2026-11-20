@@ -5,7 +5,8 @@ Notes de la discussion des 10 et 11 novembre 2026. Décisions prises par Erwan, 
 ## Décidé
 
 - **Abonnement**, en **web d'abord** (PWA). Si ça marche : Android, puis Apple.
-- **Version gratuite permanente** et **essai Yidiano+ de 7 jours**, déclenché par l'utilisateur, sans carte bancaire.
+- **Version gratuite permanente** et **essai Yidiano+ de 15 jours avec carte bancaire** (prix Paddle avec période
+  d'essai, prélèvement automatique à la fin sauf résiliation), une fois par compte (décidé le 20/11/2026).
 - **Parrainage** pour faire venir des utilisateurs.
 - **Statut juridique** : entreprise individuelle (EI) sous le régime micro-entreprise pour démarrer seul.
 - **Paiement web** : **Paddle**, vendeur officiel (« Merchant of Record ») qui encaisse les clients et gère les
@@ -27,30 +28,32 @@ Retenu : **Yidiano**, yidiano.com (OVH, nom de domaine seul, sans hébergement).
 À faire : vérifier qu'aucune marque « Yidiano » n'existe déjà (INPI, EUIPO) ; décider s'il faut aussi les extensions
 .app et .fr en redirection.
 
-## Freemium retenu
+## Freemium retenu (revu le 20/11/2026)
 
-Les contenus verrouillés restent visibles avec un cadenas, sans aperçu du premier élément payant. La progression est
-conservée à la fin de l'essai ou de l'abonnement ; seul l'accès se referme.
+Les contenus verrouillés restent visibles avec un cadenas, sans aperçu. La progression est conservée à la fin de
+l'essai ou de l'abonnement ; seul l'accès se referme. Règles dans `src/access/rules.js`.
 
 | Module | Gratuit | Yidiano+ |
 | --- | --- | --- |
 | Pinyin et tons | Les 7 leçons et le tableau des sons | Identique |
-| Vocabulaire | HSK 1 (502 mots) | HSK 1 à 9 |
-| Caractères | HSK 1 (300 caractères) | HSK 1 à 9 |
-| Clés | Les 20 premières | Toutes |
-| Grammaire | Les 16 points HSK 1 | HSK 1 à 4 |
-| Lecture | « Se présenter » et « Au restaurant » | Tous les textes |
-| Classificateurs | « Personnes & général » et « Objets selon leur forme » | Tous les groupes |
-| Aujourd'hui | Séance sur les contenus gratuits | Tous les contenus accessibles |
+| Vocabulaire | HSK 1 (502 mots), 2 tests par jour (comptés au lancement) | HSK 1 à 9, sans limite |
+| Caractères | Les 10 premiers du HSK 1 | HSK 1 à 9 |
+| Clés | Verrouillé | Toutes |
+| Grammaire | Verrouillé | HSK 1 à 4 |
+| Lecture | Verrouillé | Tous les textes |
+| Classificateurs | Verrouillé | Tous les groupes |
+| Aujourd'hui | Verrouillé | Tous les contenus |
 | Synchronisation et hors ligne | Inclus | Inclus |
 
-- L'essai Yidiano+ dure 7 jours, commence à la demande et ne peut être utilisé qu'une fois.
+- L'essai Yidiano+ dure 15 jours et demande une carte : il démarre l'abonnement Paddle (statut `trialing`), rien
+  n'est prélevé avant sa fin. Proposé à un compte jamais abonné (`/api/paddle/config`, `trial`) ; prix d'essai
+  `PADDLE_PRICE_MONTHLY_TRIAL` et `PADDLE_PRICE_YEARLY_TRIAL`, durée `TRIAL_DAYS` dans `server/paddle.js`.
 - Le rôle `admin` a l'accès complet et peut afficher l'application comme un compte gratuit.
 - Le rôle `beta` a l'accès complet pendant la bêta. Au lancement commercial, les bêta-testeurs recevront un mois
   offert, puis deviendront des utilisateurs ordinaires sauf abonnement.
 - Le rôle `user` suit les droits gratuits, l'essai et l'abonnement.
-- Les restrictions sont d'abord appliquées dans le client. Avant d'ouvrir les inscriptions publiques, les contenus
-  payants devront aussi être servis uniquement après contrôle des droits côté serveur.
+- Grammaire et lectures sont servies par `/api/content` aux seuls comptes Yidiano+ ; la limite de caractères et de
+  tests de vocabulaire est appliquée dans l'app (compteur synchronisé `vocabTests` du jour, `src/utils/activity.js`).
 
 ## Proposé (à décider)
 

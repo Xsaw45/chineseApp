@@ -41,8 +41,6 @@ export function openDb(path) {
     CREATE TABLE IF NOT EXISTS accounts (
       email TEXT PRIMARY KEY,
       role TEXT NOT NULL DEFAULT 'user' CHECK (role IN ('admin', 'beta', 'user')),
-      trial_started_at INTEGER,
-      trial_expires_at INTEGER,
       plus_expires_at INTEGER,
       created_at INTEGER NOT NULL
     ) WITHOUT ROWID;
@@ -55,6 +53,10 @@ export function openDb(path) {
     ['paddle_cancel_at', 'INTEGER'], ['paddle_event_at', 'INTEGER'],
   ]) {
     if (!accountColumns.has(name)) db.exec(`ALTER TABLE accounts ADD COLUMN ${name} ${type}`)
+  }
+  // Ancien essai de 7 jours sans carte, remplacé par l'essai Paddle : colonnes retirées des bases existantes.
+  for (const name of ['trial_started_at', 'trial_expires_at']) {
+    if (accountColumns.has(name)) db.exec(`ALTER TABLE accounts DROP COLUMN ${name}`)
   }
   db.exec('CREATE INDEX IF NOT EXISTS accounts_by_paddle_customer ON accounts (paddle_customer_id)')
 
@@ -96,12 +98,6 @@ export function openDb(path) {
     ON CONFLICT (email) DO UPDATE SET role = excluded.role
   `)
   const setPlusExpiry = db.prepare('UPDATE accounts SET plus_expires_at = ? WHERE email = ?')
-  const startTrial = db.prepare(`
-    UPDATE accounts
-    SET trial_started_at = ?, trial_expires_at = ?
-    WHERE email = ? AND trial_started_at IS NULL
-    RETURNING *
-  `)
   const getAccountByPaddleCustomer = db.prepare('SELECT * FROM accounts WHERE paddle_customer_id = ?')
   // Un événement plus ancien que le dernier appliqué ne change rien (livraison dans le désordre).
   const applySubscription = db.prepare(`
@@ -186,10 +182,6 @@ export function openDb(path) {
         insertAccount.run(email, now)
         setPlusExpiry.run(expiresAt, email)
         return getAccount.get(email)
-      },
-      startTrial(email, now, expiresAt) {
-        insertAccount.run(email, now)
-        return startTrial.get(now, expiresAt, email) || null
       },
       byPaddleCustomer: (customerId) => getAccountByPaddleCustomer.get(customerId) || null,
       /** Applique un événement d'abonnement Paddle ; null s'il est plus ancien que le dernier appliqué. */

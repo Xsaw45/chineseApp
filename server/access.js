@@ -1,30 +1,29 @@
 import { GRACE } from './paddle.js'
 
 export const ROLES = ['admin', 'beta', 'user']
-export const TRIAL_DURATION = 7 * 24 * 3600_000
+// Statuts Paddle dont la fin de période est le prochain prélèvement (sans résiliation programmée).
+const RENEWING = new Set(['active', 'trialing'])
 
 export function accessFor(account, now = Date.now()) {
   const roleAccess = account.role === 'admin' || account.role === 'beta'
-  const trialAccess = account.trial_expires_at !== null && account.trial_expires_at > now
+  // Abonnement Paddle, essai compris (statut « trialing ») : plus_expires_at, posé par le webhook (server/app.js).
   const subscriptionAccess = account.plus_expires_at !== null && account.plus_expires_at > now
-  // Un abonnement payé passe avant l'essai : l'écran Yidiano+ affiche alors l'abonnement, pas l'essai restant.
-  const source = roleAccess ? account.role : subscriptionAccess ? 'subscription' : trialAccess ? 'trial' : 'free'
+  const plus = roleAccess || subscriptionAccess
 
   return {
-    plus: roleAccess || trialAccess || subscriptionAccess,
-    plan: roleAccess || trialAccess || subscriptionAccess ? 'plus' : 'free',
-    source,
-    trialAvailable: account.trial_started_at === null,
-    trialStartedAt: account.trial_started_at,
-    trialExpiresAt: account.trial_expires_at,
+    plus,
+    plan: plus ? 'plus' : 'free',
+    source: roleAccess ? account.role : subscriptionAccess ? 'subscription' : 'free',
+    // Essai Paddle (prix avec trial_period) : une fois par compte, jamais après un premier abonnement.
+    trialAvailable: account.paddle_subscription_id === null,
     plusExpiresAt: account.plus_expires_at,
     // Abonnement Paddle (server/paddle.js) ; cancelAt : résiliation programmée en fin de période ; renewsAt :
-    // prochain prélèvement (fin de la période payée, sans la marge GRACE ajoutée à plusExpiresAt).
+    // prochain prélèvement (fin de l'essai ou de la période payée, sans la marge GRACE ajoutée à plusExpiresAt).
     subscription: account.paddle_subscription_id
       ? {
         status: account.paddle_status,
         cancelAt: account.paddle_cancel_at,
-        renewsAt: account.paddle_status === 'active' && !account.paddle_cancel_at && account.plus_expires_at
+        renewsAt: RENEWING.has(account.paddle_status) && !account.paddle_cancel_at && account.plus_expires_at
           ? account.plus_expires_at - GRACE
           : null,
       }

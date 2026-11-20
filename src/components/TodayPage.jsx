@@ -1,13 +1,11 @@
 import { useRef, useState } from 'react'
-import { CLASSIFIERS } from '../data/classifiers.js'
 import { GRAMMAR_POINTS } from '../data/grammar.js'
-import { HANZI } from '../data/hanzi.js'
-import { canUseClassifier, canUseGrammarPoint, canUseHanziLevel, canUseRadical } from '../access/rules.js'
+import { canUseGrammarPoint } from '../access/rules.js'
 import { Check, ChevronRight, Flame } from 'lucide-react'
 import { activityStats, markStepDone } from '../utils/activity.js'
 import { dueLessons, dueReadings, todayPlan } from '../utils/today.js'
 import { buildClassifierQuiz } from '../utils/classifierQuiz.js'
-import { buildHanziPractice, buildRadicalQuiz, currentHanziLevel, QUIZ_RADICALS } from '../utils/hanziQuiz.js'
+import { buildHanziPractice, buildRadicalQuiz, currentHanziLevel } from '../utils/hanziQuiz.js'
 import { useLang } from '../i18n/useLang.js'
 import { CharacterPractice } from './CharacterPractice.jsx'
 import { ClassifierQuiz } from './ClassifierQuiz.jsx'
@@ -15,7 +13,7 @@ import { GrammarReview } from './GrammarPage.jsx'
 import { PinyinLesson } from './PinyinLesson.jsx'
 import { RadicalQuiz } from './RadicalsPage.jsx'
 import { ReadingText } from './ReadingText.jsx'
-import { Button, Screen, SectionLabel, Seal, TopBar } from './ui.jsx'
+import { Button, PlusBadge, Screen, SectionLabel, Seal, TopBar } from './ui.jsx'
 import { ICON, ICON_SM } from './uiStyles.js'
 
 const STEP_INFO = {
@@ -29,16 +27,12 @@ const STEP_INFO = {
 }
 
 /** Contenu d'une étape, figé à son lancement (la leçon à revoir ne change pas pendant qu'on la fait). */
-function buildStep(id, progressMap, hasPlus) {
-  if (id === 'hanzi') {
-    const candidates = HANZI.filter(ch => canUseHanziLevel(ch.level, hasPlus))
-    const level = hasPlus ? currentHanziLevel(progressMap) : 1
-    return buildHanziPractice(progressMap, level, candidates)
-  }
-  if (id === 'radicals') return buildRadicalQuiz(progressMap, QUIZ_RADICALS.filter(r => canUseRadical(r, hasPlus)))
-  if (id === 'classifiers') return buildClassifierQuiz(progressMap, CLASSIFIERS.filter(cl => canUseClassifier(cl, hasPlus)))
+function buildStep(id, progressMap) {
+  if (id === 'hanzi') return buildHanziPractice(progressMap, currentHanziLevel(progressMap))
+  if (id === 'radicals') return buildRadicalQuiz(progressMap)
+  if (id === 'classifiers') return buildClassifierQuiz(progressMap)
   if (id === 'pinyin') return dueLessons(progressMap)[0]
-  if (id === 'reading') return dueReadings(progressMap, hasPlus)[0]
+  if (id === 'reading') return dueReadings(progressMap)[0]
   return null
 }
 
@@ -93,12 +87,12 @@ function Streak({ stats }) {
  * Chaque étape ouvre le test habituel de son module et revient ici ; elle est finie quand on l'a faite aujourd'hui
  * et qu'il ne reste rien à réviser.
  */
-export function TodayPage({ hasPlus, progressMap, applyUpdates, onBack, onStartVocab }) {
+export function TodayPage({ progressMap, applyUpdates, onBack, onStartVocab }) {
   const { t } = useLang()
   const [active, setActive] = useState(null) // { id, run, content }
   const touched = useRef(false) // l'étape en cours a enregistré au moins une réponse
 
-  const plan = todayPlan(progressMap, hasPlus)
+  const plan = todayPlan(progressMap)
   const next = plan.find(s => !s.done)
 
   function launch(id) {
@@ -107,7 +101,7 @@ export function TodayPage({ hasPlus, progressMap, applyUpdates, onBack, onStartV
       return
     }
     touched.current = false
-    setActive({ id, run: 1, content: buildStep(id, progressMap, hasPlus) })
+    setActive({ id, run: 1, content: buildStep(id, progressMap) })
   }
 
   const stepApply = updates => {
@@ -118,7 +112,7 @@ export function TodayPage({ hasPlus, progressMap, applyUpdates, onBack, onStartV
     if (touched.current) applyUpdates([markStepDone(progressMap, active.id)])
     setActive(null)
   }
-  const restart = () => setActive(a => ({ ...a, run: a.run + 1, content: buildStep(a.id, progressMap, hasPlus) }))
+  const restart = () => setActive(a => ({ ...a, run: a.run + 1, content: buildStep(a.id, progressMap) }))
 
   if (active) {
     const common = { progressMap, applyUpdates: stepApply, onExit: exit, exitLabel: t('today.back') }
@@ -126,7 +120,7 @@ export function TodayPage({ hasPlus, progressMap, applyUpdates, onBack, onStartV
     if (active.id === 'hanzi') return <CharacterPractice key={key} {...common} items={active.content} onRestart={restart} />
     if (active.id === 'radicals') return <RadicalQuiz key={key} {...common} questions={active.content} onRestart={restart} />
     if (active.id === 'classifiers') return <ClassifierQuiz key={key} {...common} questions={active.content} onRestart={restart} />
-    if (active.id === 'grammar') return <GrammarReview key={key} {...common} points={GRAMMAR_POINTS.filter(point => canUseGrammarPoint(point, hasPlus))} />
+    if (active.id === 'grammar') return <GrammarReview key={key} {...common} points={GRAMMAR_POINTS.filter(point => canUseGrammarPoint(point, true))} />
     if (active.id === 'reading') return <ReadingText key={key} {...common} reading={active.content} backLabel={t('today.title')} />
     if (active.id === 'pinyin') {
       return <PinyinLesson key={key} {...common} lesson={active.content} hasNext={false} onNextLesson={exit} backLabel={t('today.title')} />
@@ -183,30 +177,29 @@ export function TodayPage({ hasPlus, progressMap, applyUpdates, onBack, onStartV
   )
 }
 
-/** Carte de l'accueil : où en est la séance du jour, et la série de jours. */
-export function TodayCard({ hasPlus, progressMap, onOpen }) {
+/** Carte de l'accueil : où en est la séance du jour, et la série de jours ; locked : formule gratuite. */
+export function TodayCard({ locked, progressMap, onOpen }) {
   const { t } = useLang()
-  const plan = todayPlan(progressMap, hasPlus)
-  const left = plan.filter(s => !s.done).length
   const { streak } = activityStats(progressMap)
+  const left = locked ? 0 : todayPlan(progressMap).filter(s => !s.done).length
   return (
     <button
       type="button"
       onClick={onOpen}
-      className="w-full rounded-2xl border border-seal/40 bg-card p-5 text-left transition-colors duration-150 ease-out hover:bg-raised active:bg-raised"
+      className={`w-full rounded-2xl border p-5 text-left transition-colors duration-150 ease-out hover:bg-raised active:bg-raised ${locked ? 'border-line bg-page' : 'border-seal/40 bg-card'}`}
     >
       <div className="flex items-center gap-3">
         <Seal>今</Seal>
-        <span className="flex-1 text-lg font-medium text-fg">{t('today.title')}</span>
-        {streak > 0 && (
+        <span className={`flex-1 text-lg font-medium ${locked ? 'text-fg-2' : 'text-fg'}`}>{t('today.title')}</span>
+        {!locked && streak > 0 && (
           <span className="inline-flex items-center gap-1 text-sm tabular-nums text-fg-2">
             <Flame {...ICON_SM} className="text-accent" />{streak}
           </span>
         )}
-        <ChevronRight {...ICON} className="text-fg-3" />
+        {locked ? <PlusBadge /> : <ChevronRight {...ICON} className="text-fg-3" />}
       </div>
       <p className="mt-3 text-[15px] leading-snug text-fg-2">
-        {left === 0 ? t('today.cardDone') : left === 1 ? t('today.cardOne') : t('today.cardLeft', { n: left })}
+        {locked ? t('today.lockedDesc') : left === 0 ? t('today.cardDone') : left === 1 ? t('today.cardOne') : t('today.cardLeft', { n: left })}
       </p>
     </button>
   )
