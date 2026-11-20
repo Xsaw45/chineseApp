@@ -55,19 +55,18 @@ Objectif à terme : vendre l'application de chinois seule (sans l'italien), en f
 - Prononciation : enregistrement de sa voix et comparaison avec le modèle (sans note automatique des tons, peu
   fiable).
 
-## Bêta en cours (décidé le 16/11/2026)
+## Bêta et ouverture (bêta décidée le 16/11/2026, inscriptions ouvertes le 20/11/2026)
 
-L'app reste en bêta sur invitation : https://yidiano.com, connexion par e-mail, rôles `admin` / `beta` / `user`,
-version gratuite (pinyin, vocabulaire HSK 1 à 2 tests par jour, 10 caractères) et essai Yidiano+ de 15 jours avec carte
-en place (voir [COMMERCIALISATION.md](COMMERCIALISATION.md)). Rien
-n'est vendu tant que les tâches « Avant de vendre » ne sont pas faites.
+Inscriptions ouvertes à tous depuis le 20/11/2026 : https://yidiano.com, connexion par e-mail, rôles `admin` / `beta` /
+`user`, version gratuite (pinyin, vocabulaire HSK 1 à 2 tests par jour, 10 caractères) et essai Yidiano+ de 15 jours
+avec carte (voir [COMMERCIALISATION.md](COMMERCIALISATION.md)). Les bêta-testeurs gardent le rôle `beta` en parallèle.
 
 Pendant la bêta :
 - Envoyer aux testeurs et à Elisa le message de changement d'adresse (yidiano.com, reconnexion par e-mail, icône à
   réinstaller) et le lien du formulaire d'avis.
 - Recruter quelques testeurs de plus (rôle `beta` depuis la page Admin) et suivre leurs retours.
 - Relecture par un locuteur natif (voir « Secondaire »).
-- Page de présentation publiée avec prix, captures réelles et liens légaux ; les inscriptions restent sur invitation.
+- Page de présentation publiée avec prix, captures réelles et liens légaux.
 - Vidéo de présentation montée ; reste la mesure d'usage minimale (voir « Mesure d'audience »).
 
 ## Avant de vendre
@@ -90,8 +89,8 @@ micro-entreprise et paiement Paddle décidés. Nom, domaine et détails : voir [
   fin d'accès Yidiano+ à date + 1 mois dans la page Admin, puis rôle `user`).
 - **Contenu payant protégé** : grammaire et lectures servies par `/api/content` aux seuls comptes Yidiano+, absentes
   du code de l'app. Vocabulaire et caractères restent dans l'app (verrouillés côté client).
-- **Inscriptions ouvertes** : limite d'envois par IP faite ; retirer la liste d'invités (`AUTH_ALLOWED_EMAILS`) une
-  fois le paiement testé. Les bêta-testeurs gardent leur rôle `beta` (enregistré dans la base, pas dans la liste).
+- **Inscriptions ouvertes** : fait le 20/11/2026 (`AUTH_ALLOWED_EMAILS` vide), avec la limite d'envois par IP. Les
+  bêta-testeurs gardent leur rôle `beta` (enregistré dans la base, pas dans la liste).
 - **Comptes** : connexion par e-mail faite ; restent Google, puis Apple.
 - **E-mails** : depuis le 20/11/2026, Yidiano <no-reply@yidiano.com> via Brevo (compte dédié Yidiano,
   smtp-relay.brevo.com:465, clé SMTP sans expiration mais révoquée après 90 jours sans envoi). Domaine authentifié :
