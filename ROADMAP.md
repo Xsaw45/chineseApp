@@ -91,7 +91,7 @@ micro-entreprise et paiement Paddle décidés. Nom, domaine et détails : voir [
   du code de l'app. Vocabulaire et caractères restent dans l'app (verrouillés côté client).
 - **Inscriptions ouvertes** : fait le 20/11/2026 (`AUTH_ALLOWED_EMAILS` vide), avec la limite d'envois par IP. Les
   bêta-testeurs gardent leur rôle `beta` (enregistré dans la base, pas dans la liste).
-- **Comptes** : connexion par e-mail faite ; restent Google, puis Apple.
+- **Comptes** : connexion par e-mail et avec Google (20/11/2026) faites ; reste Apple.
 - **E-mails** : depuis le 20/11/2026, Yidiano <no-reply@yidiano.com> via Brevo (compte dédié Yidiano,
   smtp-relay.brevo.com:465, clé SMTP sans expiration mais révoquée après 90 jours sans envoi). Domaine authentifié :
   brevo-code, DKIM `brevo1`/`brevo2._domainkey`, DMARC `p=none` dans la zone OVH. Avant : Gmail personnel.

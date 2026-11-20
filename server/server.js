@@ -2,6 +2,7 @@ import { buildApp } from './app.js'
 import { createMailer } from './mail.js'
 import { normalizeEmail } from './auth.js'
 import { paddleConfig } from './paddle.js'
+import { googleConfig } from './google.js'
 
 const required = (name) => process.env[name] || (console.error(`Variable ${name} manquante`), process.exit(1))
 
@@ -13,6 +14,8 @@ const app = buildApp({
   publicDir: required('PUBLIC_DIR'),
   publicUrl: required('PUBLIC_URL').replace(/\/$/, ''),
   allowedEmails: allowed.length ? new Set(allowed) : null,
+  // GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET (voir server/google.js) ; sans elles, pas de bouton Google.
+  google: googleConfig(process.env),
   // PADDLE_* (voir server/paddle.js) ; sans elles, l'abonnement n'est pas proposé.
   paddle: paddleConfig(process.env),
   mailer: createMailer({

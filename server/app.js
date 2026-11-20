@@ -44,11 +44,12 @@ const syncSchema = {
 const HASHED = '/assets/'
 
 /**
- * Connexion par e-mail (server/auth.js). publicUrl : adresse publique (liens des e-mails) ; allowedEmails : Set des
- * adresses invitees, null = toutes ; paddle : configuration de paiement (paddleConfig, server/paddle.js), null = pas
+ * Connexion par e-mail et avec Google (server/auth.js). publicUrl : adresse publique (liens des e-mails, retour de
+ * Google) ; allowedEmails : Set des adresses invitees, null = toutes ; google : googleConfig (server/google.js), null =
+ * pas de connexion Google ; paddle : configuration de paiement (paddleConfig, server/paddle.js), null = pas
  * d'abonnement en vente.
  */
-export function buildApp({ dbPath, publicDir, publicUrl, mailer, allowedEmails = null, paddle = null, logger = true }) {
+export function buildApp({ dbPath, publicDir, publicUrl, mailer, allowedEmails = null, google = null, paddle = null, logger = true }) {
   // Caddy arrive par le réseau local (passerelle Docker) : request.ip = la dernière adresse non locale de
   // X-Forwarded-For, celle ajoutée par Caddy, pas celle qu'un client peut écrire en tête. Sert à la limite d'envois
   // par IP (server/auth.js).
@@ -62,7 +63,7 @@ export function buildApp({ dbPath, publicDir, publicUrl, mailer, allowedEmails =
   const quiet = { logLevel: 'warn' }
 
   app.get('/healthz', quiet, async () => ({ ok: true }))
-  app.register(authRoutes({ db, mailer, publicUrl, allowedEmails }), { prefix: '/api/auth' })
+  app.register(authRoutes({ db, mailer, publicUrl, allowedEmails, google }), { prefix: '/api/auth' })
 
   // Webhook Paddle : sans session, authentifié par la signature du corps brut (d'où le corps gardé en texte).
   if (paddle) app.register(async (hooks) => {

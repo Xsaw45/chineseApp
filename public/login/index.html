@@ -7,7 +7,7 @@
   <title>Connexion</title>
   <link rel="icon" type="image/png" href="/icons/icon-192.png">
   <meta name="theme-color" content="#141415">
-  <!-- Connexion par e-mail (server/auth.js) : lien ou code a 6 chiffres. -->
+  <!-- Connexion par e-mail (server/auth.js) : lien ou code a 6 chiffres ; ou avec Google (server/google.js). -->
   <style>
     :root { color-scheme: dark; font-family: "Source Sans 3", system-ui, -apple-system, "Segoe UI", sans-serif; }
     body { margin: 0; min-height: 100vh; background: #141415; color: #ededed; display: flex; justify-content: center; -webkit-font-smoothing: antialiased; }
@@ -31,6 +31,13 @@
     button.link:hover { color: #ededed; background: none; }
     .error { color: #e5484d; font-size: 0.9375rem; min-height: 1.4em; }
     .row { display: flex; justify-content: space-between; gap: 1rem; }
+    /* Bouton Google, version sombre de la charte Google (fond #131314, bord #8E918F, logo en couleurs). */
+    .google { display: flex; align-items: center; justify-content: center; gap: 0.75rem; height: 3.25rem; border-radius: 0.75rem;
+      border: 1px solid #8e918f; background: #131314; color: #e3e3e3; font: inherit; font-size: 1.0625rem; font-weight: 500;
+      text-decoration: none; transition: background-color .15s; }
+    .google:hover { background: #1f1f20; }
+    .or { display: flex; align-items: center; gap: 0.75rem; margin: 1.5rem 0 0; color: #6e6e73; font-size: 0.875rem; }
+    .or::before, .or::after { content: ""; flex: 1; height: 1px; background: rgb(237 237 237 / 0.14); }
     [hidden] { display: none !important; }
   </style>
 </head>
@@ -41,6 +48,13 @@
     <section id="step-email">
       <h1 data-t="title"></h1>
       <p data-t="intro"></p>
+      <div id="providers" hidden>
+        <a class="google" id="google" href="/api/auth/google/start" style="margin-top: 2rem">
+          <svg width="20" height="20" viewBox="0 0 48 48" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
+          <span data-t="google"></span>
+        </a>
+        <p class="or" data-t="or"></p>
+      </div>
       <form id="email-form">
         <label for="email" data-t="emailLabel"></label>
         <input id="email" type="email" autocomplete="email" inputmode="email" required>
@@ -82,6 +96,10 @@
         codeLabel: 'Code à 6 chiffres', confirm: 'Valider', change: 'Changer d’adresse', resend: 'Renvoyer le code',
         resent: 'Nouveau code envoyé.',
         linkTitle: 'Connexion', linkIntro: 'Confirme pour te connecter sur cet appareil.', signIn: 'Me connecter',
+        google: 'Continuer avec Google', or: 'ou par e-mail',
+        introGoogle: 'Sans mot de passe : avec ton compte Google, ou avec ton adresse e-mail (tu reçois un lien et un code).',
+        oauth_failed: 'La connexion avec Google n’a pas abouti : réessaie, ou utilise ton adresse e-mail.',
+        oauth_cancelled: 'Connexion avec Google annulée.',
         not_invited: 'Cette adresse n’est pas invitée au test. Vérifie l’orthographe ou demande une invitation.',
         too_soon: 'Un e-mail vient d’être envoyé : attends {s} s avant d’en demander un autre.',
         too_many: 'Trop de demandes pour cette adresse : réessaie dans une heure.',
@@ -99,6 +117,10 @@
         codeLabel: '6-digit code', confirm: 'Confirm', change: 'Change address', resend: 'Send a new code',
         resent: 'New code sent.',
         linkTitle: 'Sign in', linkIntro: 'Confirm to sign in on this device.', signIn: 'Sign in',
+        google: 'Continue with Google', or: 'or with email',
+        introGoogle: 'No password needed: use your Google account, or your email address (you will receive a link and a code).',
+        oauth_failed: 'Signing in with Google did not work: try again, or use your email address.',
+        oauth_cancelled: 'Signing in with Google was cancelled.',
         not_invited: 'This address is not invited to the test. Check the spelling or ask for an invitation.',
         too_soon: 'An email was just sent: wait {s} s before asking for another one.',
         too_many: 'Too many requests for this address: try again in an hour.',
@@ -122,6 +144,14 @@
     const $ = (id) => document.getElementById(id);
     let email = localStorage.getItem('langues-login-email') || '';
     $('email').value = email;
+
+    // Connexion avec Google, si le serveur la propose : même retour (next) qu'avec l'e-mail.
+    $('google').href = `/api/auth/google/start?next=${encodeURIComponent(next)}`;
+    fetch('/api/auth/providers').then(res => (res.ok ? res.json() : {})).then(({ google }) => {
+      if (!google) return;
+      $('providers').hidden = false;
+      document.querySelector('#step-email [data-t="intro"]').textContent = t.introGoogle;
+    }, () => {});
 
     function show(step) {
       for (const id of ['step-email', 'step-code', 'step-link']) $(id).hidden = id !== step;
@@ -203,6 +233,12 @@
       });
     } else {
       show('step-email');
+      // Retour d'une connexion Google refusée ou annulée (server/auth.js).
+      const oauthError = params.get('error');
+      if (oauthError) {
+        $('email-error').textContent = t[oauthError] || t.other;
+        history.replaceState(null, '', `/login/?next=${encodeURIComponent(next)}`);
+      }
     }
   </script>
 </body>

@@ -1,5 +1,6 @@
 import { createHash, randomBytes, randomInt, timingSafeEqual } from 'node:crypto'
 import { accountUser } from './access.js'
+import { googleIdentity, googleStart } from './google.js'
 
 // Connexion par e-mail : l'utilisateur recoit un lien et un code a 6 chiffres (le code sert quand le lien s'ouvre
 // ailleurs que dans l'app installee, ex. iPhone). L'identite est l'adresse e-mail, en minuscules (meme identifiant
@@ -18,6 +19,8 @@ const DAY = 24 * HOUR
 const MAX_IP_SENDS_PER_HOUR = 10
 const MAX_IP_SENDS_PER_DAY = 30
 const IP_SWEEP_SIZE = 10_000
+const OAUTH_COOKIE = 'yidiano_oauth'
+const OAUTH_TTL = 600 // s : temps laissé pour choisir son compte Google
 
 const hash = (value) => createHash('sha256').update(value).digest('hex')
 const codeHash = (email, code) => hash(`${email}:${code}`)
@@ -51,9 +54,17 @@ export const expiredSessionCookie = (publicUrl) =>
 
 const emailSchema = { type: 'string', minLength: 3, maxLength: 254, pattern: '^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$' }
 
-/** Routes /api/auth/* : demande de connexion, verification (lien ou code), deconnexion. */
-export function authRoutes({ db, mailer, publicUrl, allowedEmails }) {
+/**
+ * Routes /api/auth/* : demande de connexion, verification (lien ou code), connexion avec Google, deconnexion.
+ * google : googleConfig (server/google.js), null = connexion Google non proposée.
+ */
+export function authRoutes({ db, mailer, publicUrl, allowedEmails, google = null }) {
   const secure = publicUrl.startsWith('https:')
+  const googleRedirect = `${publicUrl}/api/auth/google/callback`
+  /** Cookie de la connexion Google en cours, limité aux routes /api/auth ; maxAge 0 l'efface. */
+  const oauthCookie = (value, maxAge) => [
+    `${OAUTH_COOKIE}=${value}`, 'Path=/api/auth', 'HttpOnly', 'SameSite=Lax', `Max-Age=${maxAge}`, ...(secure ? ['Secure'] : []),
+  ].join('; ')
   // Envois récents par adresse IP, en mémoire (remis à zéro au redémarrage, ce qui suffit contre un robot).
   const ipSends = new Map()
 
@@ -160,6 +171,55 @@ export function authRoutes({ db, mailer, publicUrl, allowedEmails }) {
         return reply.code(400).send({ error: 'wrong_code', attemptsLeft: MAX_CODE_ATTEMPTS - pending.attempts - 1 })
       }
       return openSession(reply, email)
+    })
+
+    /** Moyens de connexion proposés par la page de connexion, en plus de l'e-mail. */
+    api.get('/providers', async () => ({ google: Boolean(google) }))
+
+    // Connexion avec Google : l'état, le vérificateur PKCE et le nonce restent dans un cookie de l'appareil (10 min)
+    // jusqu'au retour de Google, qui doit présenter le même état.
+    api.get('/google/start', {
+      schema: { querystring: { type: 'object', properties: { next: { type: 'string', maxLength: 200 } } } },
+    }, async (request, reply) => {
+      if (!google) return reply.code(404).send({ error: 'google_disabled' })
+      const { url, pending } = googleStart(google, googleRedirect)
+      const value = Buffer.from(JSON.stringify({ ...pending, next: safeNext(request.query.next) })).toString('base64url')
+      reply.header('set-cookie', oauthCookie(value, OAUTH_TTL))
+      return reply.redirect(url)
+    })
+
+    api.get('/google/callback', {
+      schema: {
+        querystring: {
+          type: 'object',
+          properties: { code: { type: 'string', maxLength: 2000 }, state: { type: 'string', maxLength: 200 }, error: { type: 'string', maxLength: 200 } },
+        },
+      },
+    }, async (request, reply) => {
+      if (!google) return reply.code(404).send({ error: 'google_disabled' })
+      reply.header('set-cookie', oauthCookie('', 0))
+      const fail = (error) => reply.redirect(`/login/?error=${error}`)
+      const { code, state, error } = request.query
+      if (error) return fail('oauth_cancelled')
+      let pending
+      try {
+        pending = JSON.parse(Buffer.from(readCookie(request, OAUTH_COOKIE) || '', 'base64url').toString('utf8'))
+      } catch {
+        pending = null
+      }
+      if (!pending?.state || !code || state !== pending.state) return fail('oauth_failed')
+      let claims
+      try {
+        claims = await googleIdentity(google, googleRedirect, code, pending.verifier)
+      } catch (err) {
+        request.log.warn({ err }, 'connexion Google refusée')
+        return fail('oauth_failed')
+      }
+      if (claims.nonce !== pending.nonce || !claims.email || claims.email_verified !== true) return fail('oauth_failed')
+      const email = normalizeEmail(claims.email)
+      if (allowedEmails && !allowedEmails.has(email)) return fail('not_invited')
+      openSession(reply, email)
+      return reply.redirect(safeNext(pending.next))
     })
 
     api.post('/logout', async (request, reply) => {
