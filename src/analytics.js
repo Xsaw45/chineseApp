@@ -33,13 +33,16 @@ function load() {
       person_profiles: 'identified_only',
     })
     if (posthog.has_opted_out_capturing()) posthog.opt_in_capturing()
-    posthog.register({ surface })
+    // surface : page de présentation, connexion ou app ; installed : app ouverte depuis l'écran d'accueil (PWA).
+    // Système, type d'appareil et navigateur ($os, $device_type, $browser) sont ajoutés par PostHog.
+    const installed = window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true
+    posthog.register({ surface, installed })
     return posthog
   })
   return loading
 }
 
-/** À l'ouverture de la page : surface = 'landing' | 'app'. Charge PostHog seulement si le consentement est donné. */
+/** À l'ouverture de la page : surface = 'landing' | 'login' | 'app'. Charge PostHog seulement si consentement donné. */
 export function initAnalytics(name) {
   surface = name
   if (consent() === 'granted') load()
@@ -66,8 +69,9 @@ export function setConsent(value) {
   window.dispatchEvent(new CustomEvent(CONSENT_EVENT, { detail: value }))
 }
 
-export function capture(event, properties) {
-  if (consent() === 'granted') load().then(posthog => posthog.capture(event, properties))
+/** options : celles de posthog.capture (sendBeacon avant de quitter la page). Promesse résolue une fois l'événement confié à PostHog. */
+export function capture(event, properties, options) {
+  if (consent() === 'granted') return load().then(posthog => posthog.capture(event, properties, options))
 }
 
 async function emailHash(email) {

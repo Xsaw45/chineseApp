@@ -121,7 +121,11 @@ micro-entreprise et paiement Paddle décidés. Nom, domaine et détails : voir [
 - PostHog fait le 20/11/2026 : projet « Yidiano » (eu.posthog.com, projet 178420, fuseau Europe/Paris), chargé
   seulement après consentement (bandeau sur la page de présentation et dans l'app, Paramètres « Mesure d'audience »,
   lien « Cookies » en bas de la page de présentation ; `src/analytics.js`). Stockage localStorage, sans cookie ;
-  compte identifié par l'empreinte SHA-256 de l'adresse. Événements : pages vues (propriété `surface` landing/app),
-  `screen_viewed`, `signed_up` (premier lancement), `plus_viewed`, `free_limit_reached`, `checkout_opened`,
-  `checkout_completed` (`plan`, `trial`). Reste : entonnoir et tableau de bord dans PostHog ; proxy `/ingest` par
-  Caddy si les bloqueurs de publicité masquent trop de visites.
+  compte identifié par l'empreinte SHA-256 de l'adresse. Envoi par le relais Caddy `/ingest` de yidiano.com.
+  Propriétés de chaque événement : `surface` (landing / login / app), `installed` (app ouverte depuis l'écran
+  d'accueil), et celles de PostHog (`$os`, `$device_type`, `$browser`). Événements : pages vues, `screen_viewed`,
+  `signed_up` (premier lancement), `plus_viewed`, `free_limit_reached`, `checkout_opened`, `checkout_completed`
+  (`plan`, `trial`) ; page de connexion : `login_code_requested`, `login_code_failed` (`step`, `error`),
+  `login_google_started`, `login_google_failed`, `login_succeeded` (`method` code / link). Tableau de bord PostHog
+  « Yidiano — acquisition et abonnements » (entonnoirs d'achat et de connexion, appareils, rétention). La page de
+  connexion n'affiche pas de bandeau : elle suit le choix fait sur la page de présentation ou dans l'app.

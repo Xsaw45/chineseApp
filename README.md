@@ -7,7 +7,7 @@ Feuille de route : [ROADMAP.md](ROADMAP.md) ; vente : [COMMERCIALISATION.md](COM
 | Chemin | Contenu |
 |---|---|
 | `src/` | app React 19 + Vite + Tailwind 4, servie à la racine (`base: '/'`) |
-| `public/login/` | page de connexion (lien ou code à 6 chiffres) |
+| `login/`, `src/login/` | page de connexion (Google, ou lien et code à 6 chiffres par e-mail) |
 | `landing.html`, `src/landing/` | page de présentation, servie à `/` aux visiteurs sans session (l'app pour une session ouverte) ; captures dans `public/landing/` |
 | `legal/` | mentions légales, conditions d'utilisation et de vente, confidentialité et remboursement |
 | `content/` | contenu rédigé de grammaire et de lecture ; seule la partie gratuite entre dans le build client |

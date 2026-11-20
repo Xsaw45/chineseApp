@@ -63,6 +63,7 @@ export default defineConfig({
       input: {
         app: fileURLToPath(new URL('./index.html', import.meta.url)),
         landing: fileURLToPath(new URL('./landing.html', import.meta.url)),
+        login: fileURLToPath(new URL('./login/index.html', import.meta.url)),
         legalNotices: fileURLToPath(new URL('./legal/mentions-legales.html', import.meta.url)),
         legalTerms: fileURLToPath(new URL('./legal/conditions.html', import.meta.url)),
         legalPrivacy: fileURLToPath(new URL('./legal/confidentialite.html', import.meta.url)),
