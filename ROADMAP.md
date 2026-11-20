@@ -92,7 +92,9 @@ micro-entreprise et paiement Paddle décidés. Nom, domaine et détails : voir [
 - **Inscriptions ouvertes** : limite d'envois par IP faite ; retirer la liste d'invités (`AUTH_ALLOWED_EMAILS`) une
   fois le paiement testé. Les bêta-testeurs gardent leur rôle `beta` (enregistré dans la base, pas dans la liste).
 - **Comptes** : connexion par e-mail faite ; restent Google, puis Apple.
-- **E-mails** : fait depuis no-reply@yidiano.com via Brevo, domaine authentifié.
+- **E-mails** : depuis le 20/11/2026, Yidiano <no-reply@yidiano.com> via Brevo (compte dédié Yidiano,
+  smtp-relay.brevo.com:465, clé SMTP sans expiration mais révoquée après 90 jours sans envoi). Domaine authentifié :
+  brevo-code, DKIM `brevo1`/`brevo2._domainkey`, DMARC `p=none` dans la zone OVH. Avant : Gmail personnel.
 - **Légal** : immatriculation, mentions légales, conditions d'utilisation et de vente, confidentialité, remboursement
   sous 14 jours et suppression du compte sont en ligne. Restent : adhésion à un médiateur de la consommation (choix
   proposé : CM2C, 48 € pour 3 ans, 36 € par médiation à distance), puis ses coordonnées sur le site et dans les CGV ;
