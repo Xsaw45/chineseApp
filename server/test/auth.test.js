@@ -146,9 +146,27 @@ test('administration : seul un admin peut attribuer les roles', async () => {
   sqlite.prepare("UPDATE accounts SET role = 'admin' WHERE email = ?").run('a@x.fr')
   sqlite.close()
 
+  // Usage de b : 2 jours pratiqués (dont un aujourd'hui), un mot appris, un mot placé par le test de niveau (pas compté).
+  const today = new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Paris' })
+  await app.inject({
+    method: 'POST', url: '/api/sync/zh', headers: { cookie: userCookie },
+    payload: {
+      user: null, since: 0, changes: [
+        { key: `act_${today}`, value: { practiced: true, seconds: 600, learned: 1 }, updatedAt: 1 },
+        { key: 'act_2020-01-01', value: { seconds: 330, learned: 0 }, updatedAt: 1 },
+        { key: 'act_2020-01-02', value: { practiced: false, seconds: 60 }, updatedAt: 1 },
+        { key: 'hsk1_0001', value: { known: true }, updatedAt: 1 },
+        { key: 'hsk2_0001', value: { known: true, placed: true }, updatedAt: 1 },
+        { key: 'settings', value: { lang: 'fr' }, updatedAt: 1 },
+      ],
+    },
+  })
+
   const list = await app.inject({ url: '/api/admin/accounts', headers: { cookie: adminCookie } })
   assert.equal(list.statusCode, 200)
   assert.deepEqual(list.json().map(account => account.login), ['a@x.fr', 'b@x.fr'])
+  assert.equal(list.json()[0].stats, null)
+  assert.deepEqual(list.json()[1].stats, { days: 2, daysWeek: 1, lastDay: today, minutes: 17, learned: 1, items: 1 })
 
   const changed = await app.inject({
     method: 'PATCH',

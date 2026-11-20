@@ -154,10 +154,17 @@ export function buildApp({ dbPath, publicDir, publicUrl, mailer, allowedEmails =
       return { url: await portalUrl(paddle, account.paddle_customer_id, account.paddle_subscription_id) }
     })
 
+    // Comptes et usage (stats : null si rien n'a jamais été synchronisé). Jours en heure de Paris, comme l'app.
     api.get('/admin/accounts', async (request, reply) => {
       if (request.user.role !== 'admin') return reply.code(403).send({ error: 'admin_required' })
       const now = Date.now()
-      return db.accounts.list().map(account => accountUser(account, now))
+      const weekStart = new Date(now - 6 * 24 * 3600_000).toLocaleDateString('sv-SE', { timeZone: 'Europe/Paris' })
+      const usage = db.accounts.usage(weekStart)
+      return db.accounts.list().map(account => ({
+        ...accountUser(account, now),
+        createdAt: account.created_at,
+        stats: usage.get(account.email) || null,
+      }))
     })
 
     api.patch('/admin/accounts/:email', {

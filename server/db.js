@@ -93,6 +93,24 @@ export function openDb(path) {
   const getAccount = db.prepare('SELECT * FROM accounts WHERE email = ?')
   const insertAccount = db.prepare("INSERT OR IGNORE INTO accounts (email, role, created_at) VALUES (?, 'user', ?)")
   const listAccounts = db.prepare('SELECT * FROM accounts ORDER BY created_at, email')
+  // Usage par compte (page Admin), d'après la progression synchronisée : enregistrements du jour act_AAAA-MM-JJ
+  // (src/utils/activity.js : practiced, seconds, learned) et éléments commencés (hors mots « placés » par le test de
+  // niveau). ? : premier jour de la fenêtre des 7 derniers jours (AAAA-MM-JJ).
+  const usageByUser = db.prepare(`
+    SELECT user,
+      SUM(act AND practiced) AS days,
+      SUM(act AND practiced AND substr(key, 5) >= ?) AS days_week,
+      MAX(CASE WHEN act AND practiced THEN substr(key, 5) END) AS last_day,
+      SUM(CASE WHEN act THEN coalesce(json_extract(value, '$.seconds'), 0) ELSE 0 END) AS seconds,
+      SUM(CASE WHEN act THEN coalesce(json_extract(value, '$.learned'), 0) ELSE 0 END) AS learned,
+      SUM(NOT act AND key <> 'settings' AND coalesce(json_extract(value, '$.placed'), 0) = 0) AS items
+    FROM (
+      SELECT user, key, value, key LIKE 'act\\_%' ESCAPE '\\' AS act,
+        coalesce(json_extract(value, '$.practiced'), 1) <> 0 AS practiced
+      FROM records WHERE app = 'zh' AND value IS NOT NULL
+    )
+    GROUP BY user
+  `)
   const setAccountRole = db.prepare(`
     INSERT INTO accounts (email, role, created_at) VALUES (?, ?, ?)
     ON CONFLICT (email) DO UPDATE SET role = excluded.role
@@ -174,6 +192,13 @@ export function openDb(path) {
       },
       get: (email) => getAccount.get(email) || null,
       list: () => listAccounts.all(),
+      /** Map adresse → { days, daysWeek, lastDay, minutes, learned, items } ; weekStart : AAAA-MM-JJ d'il y a 6 jours. */
+      usage(weekStart) {
+        return new Map(usageByUser.all(weekStart).map(row => [row.user, {
+          days: row.days, daysWeek: row.days_week, lastDay: row.last_day,
+          minutes: Math.round(row.seconds / 60), learned: row.learned, items: row.items,
+        }]))
+      },
       setRole(email, role, now = Date.now()) {
         setAccountRole.run(email, role, now)
         return getAccount.get(email)
