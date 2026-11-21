@@ -12,6 +12,7 @@ const SECRET = 'pdl_ntfset_test'
 const paddle = {
   environment: 'sandbox', apiUrl: 'https://sandbox-api.paddle.com', apiKey: 'k', clientToken: 'test_token',
   webhookSecret: SECRET, prices: { monthly: 'pri_m', yearly: 'pri_y' }, trialPrices: { monthly: 'pri_mt', yearly: 'pri_yt' },
+  referralTrialPrices: { monthly: 'pri_mr', yearly: 'pri_yr' },
 }
 
 let app
@@ -128,7 +129,7 @@ test('configuration du paiement : réservée aux comptes connectés, sans le sec
   const config = async () => (await app.inject({ url: '/api/paddle/config', headers: { cookie } })).json()
   assert.deepEqual(await config(), {
     environment: 'sandbox', clientToken: 'test_token', prices: { monthly: 'pri_m', yearly: 'pri_y' },
-    trial: { days: 15, prices: { monthly: 'pri_mt', yearly: 'pri_yt' } },
+    trial: { days: 15, prices: { monthly: 'pri_mt', yearly: 'pri_yt' }, referral: false },
   })
 
   // Essai résilié avant sa fin : l'accès se ferme et aucun second essai n'est proposé.

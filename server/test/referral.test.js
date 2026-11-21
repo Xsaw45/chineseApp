@@ -11,6 +11,7 @@ const SECRET = 'pdl_ntfset_test'
 const paddle = {
   environment: 'sandbox', apiUrl: 'https://sandbox-api.paddle.com', apiKey: 'k', clientToken: 'test_token',
   webhookSecret: SECRET, prices: { monthly: 'pri_m', yearly: 'pri_y' }, trialPrices: { monthly: 'pri_mt', yearly: 'pri_yt' },
+  referralTrialPrices: { monthly: 'pri_mr', yearly: 'pri_yr' },
 }
 const day = 24 * 3600_000
 
@@ -73,7 +74,10 @@ function webhook(email, { status = 'trialing', id = `sub_${email}`, customer = `
 test('le filleul enregistre sa carte : le parrain gratuit gagne 30 jours de Yidiano+, une seule fois', async () => {
   const referrer = await signIn('parrain@x.fr')
   const ref = await openReferralLink(referrer)
-  await signIn('filleul@x.fr', ref)
+  const referee = await signIn('filleul@x.fr', ref)
+  // Le filleul a un essai de 30 jours ; le parrain, sans lien, celui de 15 jours.
+  assert.deepEqual((await get('/api/paddle/config', referee)).trial, { days: 30, prices: { monthly: 'pri_mr', yearly: 'pri_yr' }, referral: true })
+  assert.equal((await get('/api/paddle/config', referrer)).trial.days, 15)
   assert.deepEqual(await get('/api/referral', referrer), {
     link: (await get('/api/referral', referrer)).link, invited: 1, qualified: 0, months: 0, monthsYear: 0, maxMonthsPerYear: 12,
   })

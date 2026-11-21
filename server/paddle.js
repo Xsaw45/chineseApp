@@ -7,12 +7,15 @@ import { createHmac, timingSafeEqual } from 'node:crypto'
  * payée, plus GRACE (prélèvement en échec en cours de relance, webhook en retard).
  * Essai : prix Paddle avec trial_period (TRIAL_DAYS jours, carte demandée, prélèvement automatique à la fin), proposés
  * une fois par compte (accessFor, server/access.js : trialAvailable). Pendant l'essai, l'abonnement est « trialing ».
+ * Filleul (server/referral.js) : prix PADDLE_PRICE_*_TRIAL_REFERRAL, essai de REFERRAL_TRIAL_DAYS jours.
  * Environnement : PADDLE_ENV = sandbox (tests) ou production.
  */
 
 export const GRACE = 3 * 24 * 3600_000
 // Durée de l'essai des prix PADDLE_PRICE_*_TRIAL (trial_period dans Paddle) : à changer avec eux.
 export const TRIAL_DAYS = 15
+// Durée de l'essai des prix PADDLE_PRICE_*_TRIAL_REFERRAL, proposés aux filleuls : à changer avec eux.
+export const REFERRAL_TRIAL_DAYS = 30
 const SIGNATURE_TOLERANCE = 5 * 60_000
 const API = { sandbox: 'https://sandbox-api.paddle.com', production: 'https://api.paddle.com' }
 // Statuts Paddle qui donnent accès jusqu'à la fin de la période en cours (pendant l'essai : la fin de l'essai).
@@ -21,7 +24,7 @@ const ACTIVE = new Set(['active', 'trialing', 'past_due'])
 /** Configuration lue dans l'environnement ; null si Paddle n'est pas configuré (l'app affiche « bientôt »). */
 export function paddleConfig(env) {
   const keys = ['PADDLE_API_KEY', 'PADDLE_CLIENT_TOKEN', 'PADDLE_WEBHOOK_SECRET', 'PADDLE_PRICE_MONTHLY', 'PADDLE_PRICE_YEARLY',
-    'PADDLE_PRICE_MONTHLY_TRIAL', 'PADDLE_PRICE_YEARLY_TRIAL']
+    'PADDLE_PRICE_MONTHLY_TRIAL', 'PADDLE_PRICE_YEARLY_TRIAL', 'PADDLE_PRICE_MONTHLY_TRIAL_REFERRAL', 'PADDLE_PRICE_YEARLY_TRIAL_REFERRAL']
   if (!keys.every(key => env[key])) return null
   const environment = env.PADDLE_ENV === 'production' ? 'production' : 'sandbox'
   return {
@@ -32,6 +35,7 @@ export function paddleConfig(env) {
     webhookSecret: env.PADDLE_WEBHOOK_SECRET,
     prices: { monthly: env.PADDLE_PRICE_MONTHLY, yearly: env.PADDLE_PRICE_YEARLY },
     trialPrices: { monthly: env.PADDLE_PRICE_MONTHLY_TRIAL, yearly: env.PADDLE_PRICE_YEARLY_TRIAL },
+    referralTrialPrices: { monthly: env.PADDLE_PRICE_MONTHLY_TRIAL_REFERRAL, yearly: env.PADDLE_PRICE_YEARLY_TRIAL_REFERRAL },
   }
 }
 

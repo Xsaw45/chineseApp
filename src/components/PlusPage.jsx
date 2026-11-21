@@ -204,6 +204,11 @@ export function PlusPage({ onBack, onOpenReferral }) {
             <Button className="mt-4" onClick={subscribe} disabled={checkout === 'opening' || checkout === 'activating'}>
               {checkout === 'opening' ? t('plus.opening') : trial ? t('plus.startTrial', { days: trial.days }) : t('plus.subscribe')}
             </Button>
+            {trial?.referral && (
+              <p className="mt-3 flex items-center justify-center gap-1.5 rounded-xl bg-accent/10 px-3 py-2 text-center text-sm font-medium text-accent">
+                <Gift {...ICON_SM} />{t('plus.referralTrial', { days: trial.days })}
+              </p>
+            )}
             {trial && <p className="mt-3 text-center text-sm text-fg-2">{t('plus.trialTerms', { days: trial.days })}</p>}
             <p className="mt-3 text-center text-sm text-fg-3">{t('plus.noCommitment')}</p>
             <p className="mt-2 text-center text-sm text-fg-3">

@@ -68,7 +68,9 @@ l'essai ou de l'abonnement ; seul l'accès se referme. Règles dans `src/access/
 - Le parrain gagne **1 mois de Yidiano+ dès que le filleul enregistre sa carte** (essai de 15 jours ou abonnement,
   webhook Paddle `trialing`/`active`). Abonné : prochain prélèvement repoussé d'un mois (`next_billed_at`, sans
   facturation) ; sinon 30 jours de Yidiano+ (`bonus_until`). Plafond 12 mois sur 12 mois glissants.
-- Pas de bonus pour le filleul (il a l'essai de 15 jours comme tout le monde).
+- Filleul : essai Yidiano+ de **30 jours au lieu de 15** (décidé le 21/11/2026), avec carte comme l'essai normal. Prix
+  Paddle dédiés `pri_01m7z98fxs6vnnjgya17tt1aj5` (mensuel) et `pri_01m7z98g4x0qhh6qc7mg0nx3dm` (annuel), variables
+  `PADDLE_PRICE_*_TRIAL_REFERRAL`, proposés par `/api/paddle/config` aux seuls comptes arrivés par un lien.
 - Risque connu : la même carte peut servir à plusieurs essais sous des adresses différentes ; le plafond et la
   possibilité d'annuler les parrainages abusifs (CGV, article 5) le limitent. Code : `server/referral.js`.
 

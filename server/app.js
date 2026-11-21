@@ -3,8 +3,8 @@ import fastifyStatic from '@fastify/static'
 import { openDb } from './db.js'
 import { authRoutes, expiredSessionCookie, normalizeEmail, sessionUser } from './auth.js'
 import { accountUser, ROLES } from './access.js'
-import { cancelSubscription, portalUrl, subscriptionAccess, TRIAL_DAYS, verifySignature } from './paddle.js'
-import { MAX_MONTHS_PER_YEAR, newReferralCode, REF_CODE, REF_COOKIE, REF_TTL, rewardReferrer } from './referral.js'
+import { cancelSubscription, portalUrl, REFERRAL_TRIAL_DAYS, subscriptionAccess, TRIAL_DAYS, verifySignature } from './paddle.js'
+import { isReferee, MAX_MONTHS_PER_YEAR, newReferralCode, REF_CODE, REF_COOKIE, REF_TTL, rewardReferrer } from './referral.js'
 import { splitContent } from '../content/split.js'
 
 const APPS = ['zh']
@@ -158,10 +158,16 @@ export function buildApp({ dbPath, publicDir, publicUrl, mailer, allowedEmails =
     })
 
     // Paiement : de quoi ouvrir Paddle.js (jeton client, environnement, prix), puis l'espace client Paddle.
-    // prices : prix affichés ; trial : prix avec essai à ouvrir au paiement, pour un compte qui n'a jamais été abonné.
+    // prices : prix affichés ; trial : prix avec essai à ouvrir au paiement, pour un compte qui n'a jamais été abonné
+    // (filleul : essai doublé, referral: true).
     api.get('/paddle/config', async (request, reply) => {
       if (!paddle) return reply.code(404).send({ error: 'paddle_disabled' })
-      const trial = request.user.access.trialAvailable ? { days: TRIAL_DAYS, prices: paddle.trialPrices } : null
+      let trial = null
+      if (request.user.access.trialAvailable) {
+        trial = isReferee(db, request.user.login)
+          ? { days: REFERRAL_TRIAL_DAYS, prices: paddle.referralTrialPrices, referral: true }
+          : { days: TRIAL_DAYS, prices: paddle.trialPrices, referral: false }
+      }
       return { environment: paddle.environment, clientToken: paddle.clientToken, prices: paddle.prices, trial }
     })
     api.post('/paddle/portal', async (request, reply) => {

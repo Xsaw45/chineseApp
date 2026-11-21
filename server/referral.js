@@ -23,6 +23,9 @@ export const REF_CODE = /^[A-HJ-NP-Z2-9]{8}$/
 export const newReferralCode = () => Array.from({ length: 8 }, () => ALPHABET[randomInt(ALPHABET.length)]).join('')
 const refereeHash = (email) => createHash('sha256').update(email).digest('hex')
 
+/** Compte arrivé par un lien de parrainage : son essai Yidiano+ dure REFERRAL_TRIAL_DAYS jours (server/paddle.js). */
+export const isReferee = (db, email) => db.referrals.referrerOf(refereeHash(email)) !== null
+
 /** Première connexion d'un compte arrivé par un lien de parrainage (code du cookie) : l'enregistre comme filleul. */
 export function attachReferral(db, email, code, now = Date.now()) {
   if (!db.accounts.firstLogin(email, now) || !REF_CODE.test(code || '')) return false

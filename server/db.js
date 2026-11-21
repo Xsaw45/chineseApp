@@ -168,6 +168,7 @@ export function openDb(path) {
     UPDATE referrals SET rewarded_at = ?, reward = 'pending' WHERE referee = ? AND rewarded_at IS NULL RETURNING referrer
   `)
   const setReferralReward = db.prepare('UPDATE referrals SET reward = ? WHERE referee = ?')
+  const getReferral = db.prepare('SELECT referrer FROM referrals WHERE referee = ?')
   const referralStats = db.prepare(`
     SELECT count(*) AS invited, count(rewarded_at) AS qualified,
       coalesce(sum(reward IN ('access', 'billing_delay')), 0) AS months,
@@ -319,6 +320,7 @@ export function openDb(path) {
     /** Parrainage : refereeHash = empreinte SHA-256 de l'adresse du filleul (server/referral.js). */
     referrals: {
       add: (refereeHash, referrer, now = Date.now()) => insertReferral.run(refereeHash, referrer, now).changes > 0,
+      referrerOf: (refereeHash) => getReferral.get(refereeHash)?.referrer ?? null,
       /** Filleul qui enregistre sa carte : renvoie le parrain la première fois seulement, sinon null. */
       qualify: (refereeHash, now = Date.now()) => qualifyReferral.get(now, refereeHash)?.referrer ?? null,
       setReward: (refereeHash, reward) => setReferralReward.run(reward, refereeHash),
