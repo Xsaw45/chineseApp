@@ -59,9 +59,18 @@ l'essai ou de l'abonnement ; seul l'accès se referme. Règles dans `src/access/
 
 - **Prix** de départ : 7,99 €/mois et 49,99 €/an (annuel mis en avant). Les concurrents (HelloChinese, Duolingo
   Super) seraient autour de 10-13 €/mois : à vérifier. Modifiable sans toucher au code.
-- **Parrainage**, récompense des deux côtés : le filleul a 14 jours d'essai au lieu de 7 ; le parrain gagne 1 mois
-  offert quand le filleul paie son premier mois (après le délai de remboursement, contre les faux comptes) ;
-  plafond 12 mois par an ; lien personnel et compteur d'amis parrainés dans l'app.
+
+## Parrainage (décidé et fait le 21/11/2026)
+
+- Lien personnel `https://yidiano.com/?ref=CODE` (Paramètres, accueil, écran Yidiano+ ; page « Parrainage » avec
+  partage, copie et compteurs). Le cookie `yidiano_ref` (30 jours) rattache le compte créé ensuite au parrain ; un
+  compte déjà connecté une fois ne peut pas devenir filleul ; une adresse ne compte qu'une fois.
+- Le parrain gagne **1 mois de Yidiano+ dès que le filleul enregistre sa carte** (essai de 15 jours ou abonnement,
+  webhook Paddle `trialing`/`active`). Abonné : prochain prélèvement repoussé d'un mois (`next_billed_at`, sans
+  facturation) ; sinon 30 jours de Yidiano+ (`bonus_until`). Plafond 12 mois sur 12 mois glissants.
+- Pas de bonus pour le filleul (il a l'essai de 15 jours comme tout le monde).
+- Risque connu : la même carte peut servir à plusieurs essais sous des adresses différentes ; le plafond et la
+  possibilité d'annuler les parrainages abusifs (CGV, article 5) le limitent. Code : `server/referral.js`.
 
 ## Statut juridique retenu
 

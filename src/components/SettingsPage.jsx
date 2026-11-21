@@ -107,7 +107,7 @@ function DeleteAccount({ email }) {
   )
 }
 
-export function SettingsPage({ onBack, onOpenPlus, onOpenAdmin }) {
+export function SettingsPage({ onBack, onOpenPlus, onOpenAdmin, onOpenReferral }) {
   const { lang, setLang, t } = useLang()
   const { account, hasPlus, previewFree, setPreviewFree } = useAccess()
   return (
@@ -149,6 +149,7 @@ export function SettingsPage({ onBack, onOpenPlus, onOpenAdmin }) {
               )}
             </div>
             <Button variant="secondary" className="mt-3" onClick={onOpenPlus}>{t('settings.openPlus')}</Button>
+            <Button variant="secondary" className="mt-2" onClick={onOpenReferral}>{t('ref.cardTitle')}</Button>
             {account.role === 'admin' && <Button variant="secondary" className="mt-2" onClick={onOpenAdmin}>{t('settings.admin')}</Button>}
           </>
         )}

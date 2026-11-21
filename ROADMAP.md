@@ -104,7 +104,7 @@ micro-entreprise et paiement Paddle décidés. Nom, domaine et détails : voir [
 - **Marque et domaines** : recherche TMview du 19/11/2026 : aucune marque « Yidiano » enregistrée ; marques proches
   seulement en Chine (YIDIAN, YIDIAO) ou hors de nos classes. Reste à décider : dépôt INPI (classes 9, 41, 42),
   yidiano.app et yidiano.fr.
-- **Produit** : objectif par jour au premier lancement et parrainage (filleul 14 jours d'essai, parrain 1 mois offert).
+- **Produit** : parrainage fait le 21/11/2026 (voir COMMERCIALISATION.md) ; reste l'objectif par jour au premier lancement.
   Les captures de la page de présentation sont faites.
 - **Technique** : découper le chargement (3,4 Mo d'un bloc ; niveaux HSK chargés à l'ouverture) ; tests sur vrais
   iPhone et Android (son, encoche, hors ligne).

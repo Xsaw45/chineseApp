@@ -76,6 +76,28 @@ export function openDb(path) {
   }
   db.exec('CREATE INDEX IF NOT EXISTS accounts_by_paddle_customer ON accounts (paddle_customer_id)')
 
+  // Parrainage (server/referral.js). first_login_at : première connexion (seul un compte qui se connecte pour la
+  // première fois peut être parrainé) ; referral_code : code du lien personnel ; bonus_until : Yidiano+ offert.
+  for (const [name, type] of [['first_login_at', 'INTEGER'], ['referral_code', 'TEXT'], ['bonus_until', 'INTEGER']]) {
+    if (accountColumns.has(name)) continue
+    db.exec(`ALTER TABLE accounts ADD COLUMN ${name} ${type}`)
+    // Comptes d'avant le parrainage : considérés comme déjà connectés, ils ne peuvent pas devenir filleuls.
+    if (name === 'first_login_at') db.exec('UPDATE accounts SET first_login_at = created_at')
+  }
+  db.exec('CREATE UNIQUE INDEX IF NOT EXISTS accounts_by_referral_code ON accounts (referral_code)')
+  // Un filleul par empreinte d'adresse (referee : SHA-256), gardée après la suppression de son compte : une adresse
+  // ne rapporte qu'une fois. rewarded_at / reward : récompense du parrain quand le filleul a enregistré sa carte.
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS referrals (
+      referee TEXT PRIMARY KEY,
+      referrer TEXT NOT NULL,
+      created_at INTEGER NOT NULL,
+      rewarded_at INTEGER,
+      reward TEXT
+    ) WITHOUT ROWID;
+    CREATE INDEX IF NOT EXISTS referrals_by_referrer ON referrals (referrer);
+  `)
+
   const currentSeq = db.prepare('SELECT seq FROM counter WHERE id = 1')
   const nextSeq = db.prepare('UPDATE counter SET seq = seq + 1 WHERE id = 1 RETURNING seq')
   const upsert = db.prepare(`
@@ -137,6 +159,21 @@ export function openDb(path) {
   `)
   const setPlusExpiry = db.prepare('UPDATE accounts SET plus_expires_at = ? WHERE email = ?')
   const getAccountByPaddleCustomer = db.prepare('SELECT * FROM accounts WHERE paddle_customer_id = ?')
+  const markFirstLogin = db.prepare('UPDATE accounts SET first_login_at = ? WHERE email = ? AND first_login_at IS NULL RETURNING email')
+  const getByReferralCode = db.prepare('SELECT * FROM accounts WHERE referral_code = ?')
+  const setReferralCode = db.prepare('UPDATE accounts SET referral_code = ? WHERE email = ? AND referral_code IS NULL')
+  const setBonusUntil = db.prepare('UPDATE accounts SET bonus_until = ? WHERE email = ? RETURNING *')
+  const insertReferral = db.prepare('INSERT OR IGNORE INTO referrals (referee, referrer, created_at) VALUES (?, ?, ?)')
+  const qualifyReferral = db.prepare(`
+    UPDATE referrals SET rewarded_at = ?, reward = 'pending' WHERE referee = ? AND rewarded_at IS NULL RETURNING referrer
+  `)
+  const setReferralReward = db.prepare('UPDATE referrals SET reward = ? WHERE referee = ?')
+  const referralStats = db.prepare(`
+    SELECT count(*) AS invited, count(rewarded_at) AS qualified,
+      coalesce(sum(reward IN ('access', 'billing_delay')), 0) AS months,
+      coalesce(sum(reward IN ('access', 'billing_delay') AND rewarded_at > ?), 0) AS months_year
+    FROM referrals WHERE referrer = ?
+  `)
   // Un événement plus ancien que le dernier appliqué ne change rien (livraison dans le désordre).
   const applySubscription = db.prepare(`
     UPDATE accounts
@@ -145,9 +182,10 @@ export function openDb(path) {
     WHERE email = ? AND (paddle_event_at IS NULL OR paddle_event_at <= ?)
     RETURNING *
   `)
-  // Suppression d'un compte (RGPD) : progression, sessions, demande de connexion et compte.
+  // Suppression d'un compte (RGPD) : progression, sessions, demande de connexion, filleuls (comme parrain) et compte.
+  // Comme filleul, seule l'empreinte de l'adresse reste dans referrals (une adresse ne rapporte qu'une fois).
   const deleteStatements = ['records WHERE user = ?', 'sessions WHERE email = ?', 'login_requests WHERE email = ?',
-    'accounts WHERE email = ?'].map(target => db.prepare(`DELETE FROM ${target}`))
+    'referrals WHERE referrer = ?', 'accounts WHERE email = ?'].map(target => db.prepare(`DELETE FROM ${target}`))
 
   const toChange = (row) => ({
     key: row.key,
@@ -250,6 +288,21 @@ export function openDb(path) {
         insertAccount.run(email, now)
         return applySubscription.get(customerId, subscriptionId, status, cancelAt, expiresAt, eventAt, email, eventAt) || null
       },
+      /** Première connexion du compte : vrai une seule fois (le compte peut alors devenir filleul). */
+      firstLogin: (email, now = Date.now()) => Boolean(markFirstLogin.get(now, email)),
+      byReferralCode: (code) => getByReferralCode.get(code) || null,
+      /** Code de parrainage du compte, créé au premier besoin avec newCode() (réessayé si déjà pris). */
+      referralCode(email, newCode) {
+        for (let attempt = 0; attempt < 5 && !getAccount.get(email).referral_code; attempt++) {
+          try {
+            setReferralCode.run(newCode(), email)
+          } catch (err) {
+            if (!String(err.message).includes('UNIQUE')) throw err
+          }
+        }
+        return getAccount.get(email).referral_code
+      },
+      setBonusUntil: (email, until) => setBonusUntil.get(until, email) || null,
       /** Efface tout ce qui concerne l'adresse (progression comprise), en une transaction. */
       delete(email) {
         db.exec('BEGIN IMMEDIATE')
@@ -260,6 +313,19 @@ export function openDb(path) {
           db.exec('ROLLBACK')
           throw err
         }
+      },
+    },
+
+    /** Parrainage : refereeHash = empreinte SHA-256 de l'adresse du filleul (server/referral.js). */
+    referrals: {
+      add: (refereeHash, referrer, now = Date.now()) => insertReferral.run(refereeHash, referrer, now).changes > 0,
+      /** Filleul qui enregistre sa carte : renvoie le parrain la première fois seulement, sinon null. */
+      qualify: (refereeHash, now = Date.now()) => qualifyReferral.get(now, refereeHash)?.referrer ?? null,
+      setReward: (refereeHash, reward) => setReferralReward.run(reward, refereeHash),
+      /** { invited, qualified, months, monthsYear } : yearStart = début de la fenêtre du plafond annuel. */
+      stats(referrer, yearStart) {
+        const row = referralStats.get(yearStart, referrer)
+        return { invited: row.invited, qualified: row.qualified, months: row.months, monthsYear: row.months_year }
       },
     },
 

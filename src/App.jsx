@@ -27,16 +27,23 @@ import { TodayPage } from './components/TodayPage.jsx'
 import { SettingsPage } from './components/SettingsPage.jsx'
 import { PlusPage } from './components/PlusPage.jsx'
 import { AdminPage } from './components/AdminPage.jsx'
+import { ReferralPage } from './components/ReferralPage.jsx'
 
 export default function App() {
   // 'home' (choix du module) | 'hsk' (vocabulaire : tests et niveaux) | 'vocabulary' (liste des mots) | 'classifiers'
-  // | 'pinyin' | 'hanzi' | 'grammar' | 'reading' | 'today' | 'settings' | 'plus' | 'admin'
+  // | 'pinyin' | 'hanzi' | 'grammar' | 'reading' | 'today' | 'settings' | 'plus' | 'referral' | 'admin'
   const [screen, setScreen] = useState('home')
   const [plusBack, setPlusBack] = useState('settings')
   const openPlus = useCallback(from => {
     capture('plus_viewed', { from })
     setPlusBack(from)
     setScreen('plus')
+  }, [])
+  const [referralBack, setReferralBack] = useState('home')
+  const openReferral = useCallback(from => {
+    capture('referral_viewed', { from })
+    setReferralBack(from)
+    setScreen('referral')
   }, [])
   const { progressMap, latestMap, getProgress, applyUpdates: saveUpdates, loading } = useProgress()
   const { hasPlus, loading: accessLoading } = useAccess()
@@ -181,9 +188,11 @@ export default function App() {
   } else if (view === 'reading') {
     content = <ReadingPage hasPlus={hasPlus} onUpgrade={() => openPlus('reading')} progressMap={progressMap} applyUpdates={applyUpdates} onBack={home} />
   } else if (view === 'settings') {
-    content = <SettingsPage onBack={home} onOpenPlus={() => openPlus('settings')} onOpenAdmin={() => setScreen('admin')} />
+    content = <SettingsPage onBack={home} onOpenPlus={() => openPlus('settings')} onOpenAdmin={() => setScreen('admin')} onOpenReferral={() => openReferral('settings')} />
   } else if (view === 'plus') {
-    content = <PlusPage onBack={() => setScreen(plusBack)} />
+    content = <PlusPage onBack={() => setScreen(plusBack)} onOpenReferral={() => openReferral('plus')} />
+  } else if (view === 'referral') {
+    content = <ReferralPage onBack={() => setScreen(referralBack)} />
   } else if (view === 'admin') {
     content = <AdminPage onBack={() => setScreen('settings')} />
   } else if (view === 'today') {
@@ -220,6 +229,7 @@ export default function App() {
         onOpenReading={() => openModule('reading')}
         onOpenClassifiers={() => openModule('classifiers')}
         onOpenSettings={() => setScreen('settings')}
+        onOpenReferral={() => openReferral('home')}
         hasPlus={hasPlus}
       />
     )

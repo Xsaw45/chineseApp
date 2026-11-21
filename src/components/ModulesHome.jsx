@@ -1,4 +1,4 @@
-import { ChevronRight, Settings } from 'lucide-react'
+import { ChevronRight, Gift, Settings } from 'lucide-react'
 import { CLASSIFIERS } from '../data/classifiers.js'
 import { PINYIN_LESSONS } from '../data/pinyinLessons.js'
 import { GRAMMAR_POINTS } from '../data/grammar.js'
@@ -44,8 +44,29 @@ function ModuleCard({ id, seal, chinese, known, total, locked = false, onOpen })
   )
 }
 
+/** Parrainage mis en avant sur l'accueil : un mois de Yidiano+ par ami qui essaie Yidiano+ (ReferralPage). */
+function ReferralCard({ onOpen }) {
+  const { t } = useLang()
+  return (
+    <button
+      type="button"
+      onClick={onOpen}
+      className="mt-3 flex w-full items-center gap-3 rounded-2xl border border-accent/40 bg-accent/10 p-4 text-left transition-colors duration-150 ease-out hover:bg-accent/15"
+    >
+      <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-accent text-white">
+        <Gift size={20} strokeWidth={1.75} aria-hidden="true" />
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="block text-base font-medium text-fg">{t('ref.cardTitle')}</span>
+        <span className="mt-0.5 block text-sm leading-snug text-fg-2">{t('ref.cardText')}</span>
+      </span>
+      <ChevronRight {...ICON} className="shrink-0 text-fg-3" />
+    </button>
+  )
+}
+
 /** showPlacement : nouvel utilisateur, invité au test de niveau. Un module verrouillé ouvre Yidiano+ (App.jsx). */
-export function ModulesHome({ hasPlus, levelStats, progressMap, showPlacement, onStartPlacement, onOpenToday, onOpenPinyin, onOpenVocabulary, onOpenCharacters, onOpenGrammar, onOpenReading, onOpenClassifiers, onOpenSettings }) {
+export function ModulesHome({ hasPlus, levelStats, progressMap, showPlacement, onStartPlacement, onOpenToday, onOpenPinyin, onOpenVocabulary, onOpenCharacters, onOpenGrammar, onOpenReading, onOpenClassifiers, onOpenSettings, onOpenReferral }) {
   const { t } = useLang()
   const locked = module => !canOpenModule(module, hasPlus)
   const availableLevels = (levelStats || []).filter(stat => canUseVocabLevel(stat.level, hasPlus))
@@ -85,6 +106,7 @@ export function ModulesHome({ hasPlus, levelStats, progressMap, showPlacement, o
         </header>
 
         <TodayCard locked={locked('today')} progressMap={progressMap} onOpen={onOpenToday} />
+        <ReferralCard onOpen={onOpenReferral} />
         {showPlacement && <PlacementInvite onStart={onStartPlacement} className="mt-3" />}
 
         <div className="mt-6 flex flex-col gap-3">

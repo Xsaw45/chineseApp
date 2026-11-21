@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { Check } from 'lucide-react'
+import { Check, Gift } from 'lucide-react'
 import { useAccess } from '../access/context.js'
 import { fetchPaddleConfig, loadPaddle, onPaddleEvent } from '../access/paddle.js'
 import { capture } from '../analytics.js'
@@ -22,7 +22,7 @@ function priceLabel({ amount, currency }, lang) {
   return format.format(amount / 10 ** format.resolvedOptions().maximumFractionDigits)
 }
 
-export function PlusPage({ onBack }) {
+export function PlusPage({ onBack, onOpenReferral }) {
   const { account, refresh } = useAccess()
   const { lang, t } = useLang()
   const [now] = useState(Date.now)
@@ -47,7 +47,9 @@ export function PlusPage({ onBack }) {
           ? t('plus.subscriptionRenews', { date: dateLabel(access.subscription.renewsAt, lang) })
           : subscribed && access.plusExpiresAt > now
             ? t('plus.subscriptionActive', { date: dateLabel(access.plusExpiresAt, lang) })
-            : t('plus.freePlan')
+            : access?.source === 'referral' && access.bonusUntil > now
+              ? t('plus.referralActive', { date: dateLabel(access.bonusUntil, lang) })
+              : t('plus.freePlan')
 
   useEffect(() => {
     if (!canSubscribe) return
@@ -228,6 +230,15 @@ export function PlusPage({ onBack }) {
             {portal === 'error' && <p role="alert" className="mt-2 text-center text-sm text-bad">{t('plus.manageError')}</p>}
           </div>
         )}
+
+        <button
+          type="button"
+          onClick={onOpenReferral}
+          className="mt-8 rounded-2xl border border-accent/40 bg-card p-4 text-left transition-colors duration-150 ease-out hover:bg-raised"
+        >
+          <span className="flex items-center gap-2 font-medium text-fg"><Gift {...ICON_SM} className="text-accent" />{t('ref.plusTitle')}</span>
+          <span className="mt-1 block text-[15px] leading-relaxed text-fg-2">{t('ref.plusText')}</span>
+        </button>
       </div>
     </Screen>
   )

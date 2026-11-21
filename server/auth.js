@@ -1,6 +1,7 @@
 import { createHash, randomBytes, randomInt, timingSafeEqual } from 'node:crypto'
 import { accountUser } from './access.js'
 import { googleIdentity, googleStart } from './google.js'
+import { attachReferral, REF_COOKIE } from './referral.js'
 
 // Connexion par e-mail : l'utilisateur recoit un lien et un code a 6 chiffres (le code sert quand le lien s'ouvre
 // ailleurs que dans l'app installee, ex. iPhone). L'identite est l'adresse e-mail, en minuscules (meme identifiant
@@ -82,12 +83,14 @@ export function authRoutes({ db, mailer, publicUrl, allowedEmails, google = null
     return 0
   }
 
-  function openSession(reply, email) {
+  /** Ouvre la session ; à la première connexion d'un compte, le cookie de parrainage en fait un filleul. */
+  function openSession(request, reply, email) {
     const token = randomBytes(32).toString('base64url')
     const now = Date.now()
     db.auth.spendLoginRequest(email)
     db.auth.createSession(hash(token), email, now + SESSION_TTL, now)
     db.accounts.ensure(email, now)
+    attachReferral(db, email, readCookie(request, REF_COOKIE), now)
     reply.header('set-cookie', [
       `${SESSION_COOKIE}=${token}`, 'Path=/', 'HttpOnly', 'SameSite=Lax', `Max-Age=${SESSION_TTL / 1000}`,
       ...(secure ? ['Secure'] : []),
@@ -158,7 +161,7 @@ export function authRoutes({ db, mailer, publicUrl, allowedEmails, google = null
       if (token) {
         const pending = db.auth.loginByToken(hash(token))
         if (!pending || pending.expires_at <= now) return reply.code(400).send({ error: 'invalid_link' })
-        return openSession(reply, pending.email)
+        return openSession(request, reply, pending.email)
       }
       if (!rawEmail || !code) return reply.code(400).send({ error: 'missing_code' })
       const email = normalizeEmail(rawEmail)
@@ -170,7 +173,7 @@ export function authRoutes({ db, mailer, publicUrl, allowedEmails, google = null
         db.auth.countAttempt(email)
         return reply.code(400).send({ error: 'wrong_code', attemptsLeft: MAX_CODE_ATTEMPTS - pending.attempts - 1 })
       }
-      return openSession(reply, email)
+      return openSession(request, reply, email)
     })
 
     /** Moyens de connexion proposés par la page de connexion, en plus de l'e-mail. */
@@ -218,7 +221,7 @@ export function authRoutes({ db, mailer, publicUrl, allowedEmails, google = null
       if (claims.nonce !== pending.nonce || !claims.email || claims.email_verified !== true) return fail('oauth_failed')
       const email = normalizeEmail(claims.email)
       if (allowedEmails && !allowedEmails.has(email)) return fail('not_invited')
-      openSession(reply, email)
+      openSession(request, reply, email)
       return reply.redirect(safeNext(pending.next))
     })
 

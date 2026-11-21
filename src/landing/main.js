@@ -1,9 +1,18 @@
 import HanziWriter from 'hanzi-writer'
-import { consent, initAnalytics, setConsent } from '../analytics.js'
+import { capture, consent, initAnalytics, setConsent } from '../analytics.js'
 import './landing.css'
+
+// Lien de parrainage (?ref=CODE) : le serveur a gardé le code dans un cookie (server/referral.js) ; l'invitation est
+// affichée, et le code retiré de l'adresse avant la mesure d'audience.
+const referred = new URLSearchParams(location.search).has('ref')
+if (referred) {
+  document.querySelector('[data-invite]').hidden = false
+  history.replaceState(null, '', '/')
+}
 
 // Mesure d'audience : bandeau tant qu'aucun choix n'est fait ; le lien « Cookies » du pied de page le rouvre.
 initAnalytics('landing')
+if (referred) capture('referral_link_opened')
 const banner = document.querySelector('[data-consent]')
 banner.hidden = consent() !== null
 for (const button of banner.querySelectorAll('[data-consent-choice]')) {

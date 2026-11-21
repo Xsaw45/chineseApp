@@ -16,7 +16,8 @@ function readCachedAccount() {
 function effectivePlus(account) {
   if (!account?.access?.plus) return false
   if (account.role === 'admin' || account.role === 'beta') return true
-  return account.access.plusExpiresAt > Date.now()
+  // Abonnement Paddle ou mois offerts par le parrainage (server/referral.js).
+  return Math.max(account.access.plusExpiresAt || 0, account.access.bonusUntil || 0) > Date.now()
 }
 
 export function AccessProvider({ children }) {

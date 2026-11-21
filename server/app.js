@@ -4,6 +4,7 @@ import { openDb } from './db.js'
 import { authRoutes, expiredSessionCookie, normalizeEmail, sessionUser } from './auth.js'
 import { accountUser, ROLES } from './access.js'
 import { cancelSubscription, portalUrl, subscriptionAccess, TRIAL_DAYS, verifySignature } from './paddle.js'
+import { MAX_MONTHS_PER_YEAR, newReferralCode, REF_CODE, REF_COOKIE, REF_TTL, rewardReferrer } from './referral.js'
 import { splitContent } from '../content/split.js'
 
 const APPS = ['zh']
@@ -99,6 +100,14 @@ export function buildApp({ dbPath, publicDir, publicUrl, mailer, allowedEmails =
         eventAt,
         ...subscriptionAccess(subscription, eventAt),
       })
+      // Filleul qui vient d'enregistrer sa carte (essai ou abonnement) : son parrain gagne un mois (server/referral.js).
+      if (subscription.status === 'trialing' || subscription.status === 'active') {
+        try {
+          await rewardReferrer(db, paddle, account.email, request.log)
+        } catch (err) {
+          request.log.error({ err, email: account.email }, 'parrainage : récompense non appliquée')
+        }
+      }
       return { ok: true }
     })
   }, { prefix: '/api/paddle' })
@@ -112,6 +121,13 @@ export function buildApp({ dbPath, publicDir, publicUrl, mailer, allowedEmails =
     })
 
     api.get('/me', async (request) => request.user)
+
+    // Parrainage : lien personnel et compteurs (invités, cartes enregistrées, mois gagnés dont ceux de l'année).
+    api.get('/referral', async (request) => {
+      const code = db.accounts.referralCode(request.user.login, newReferralCode)
+      const stats = db.referrals.stats(request.user.login, Date.now() - 365 * 24 * 3600_000)
+      return { link: `${publicUrl}/?ref=${code}`, ...stats, maxMonthsPerYear: MAX_MONTHS_PER_YEAR }
+    })
 
     api.get('/content', async (request, reply) => {
       if (!request.user.access.plus) return reply.code(403).send({ error: 'plus_required' })
@@ -209,11 +225,19 @@ export function buildApp({ dbPath, publicDir, publicUrl, mailer, allowedEmails =
   }, { prefix: '/api', ...quiet })
 
   // Même adresse, deux pages : l'app pour une session ouverte (et l'app installée, dont start_url est /), la page
-  // de présentation (landing.html) pour les visiteurs et les moteurs de recherche.
-  app.get('/', quiet, (request, reply) => reply
-    .header('cache-control', 'no-cache')
-    .header('vary', 'Cookie')
-    .sendFile(sessionUser(request, db) ? 'index.html' : 'landing.html'))
+  // de présentation (landing.html) pour les visiteurs et les moteurs de recherche. ?ref=CODE : lien de parrainage,
+  // gardé dans un cookie jusqu'à la création du compte (server/referral.js).
+  app.get('/', quiet, (request, reply) => {
+    const ref = request.query.ref
+    if (typeof ref === 'string' && REF_CODE.test(ref)) {
+      reply.header('set-cookie', [`${REF_COOKIE}=${ref}`, 'Path=/', 'HttpOnly', 'SameSite=Lax', `Max-Age=${REF_TTL}`,
+        ...(publicUrl.startsWith('https:') ? ['Secure'] : [])].join('; '))
+    }
+    return reply
+      .header('cache-control', 'no-cache')
+      .header('vary', 'Cookie')
+      .sendFile(sessionUser(request, db) ? 'index.html' : 'landing.html')
+  })
 
   app.register(fastifyStatic, {
     ...quiet,

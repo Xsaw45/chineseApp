@@ -62,6 +62,7 @@ test('connexion par code : la session donne acces a la progression de l adresse'
       source: 'free',
       trialAvailable: true,
       plusExpiresAt: null,
+      bonusUntil: null,
       subscription: null,
     },
   })

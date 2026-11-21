@@ -51,15 +51,16 @@ export function verifySignature(rawBody, header, secret, now = Date.now()) {
 
 /**
  * Ce qu'un événement subscription.* change sur le compte : { expiresAt, status, cancelAt }.
- * expiresAt : fin de la période payée + GRACE tant que l'abonnement est actif, sinon l'instant de l'événement.
+ * expiresAt : fin de la période payée (ou prochain prélèvement s'il est plus tard, prélèvement repoussé par le
+ * parrainage) + GRACE tant que l'abonnement est actif, sinon l'instant de l'événement.
  */
 export function subscriptionAccess(subscription, occurredAt) {
-  const periodEnd = subscription.current_billing_period?.ends_at
-  const active = ACTIVE.has(subscription.status) && periodEnd
+  const periodEnd = Math.max(Date.parse(subscription.current_billing_period?.ends_at) || 0, Date.parse(subscription.next_billed_at) || 0)
+  const active = ACTIVE.has(subscription.status) && periodEnd > 0
   const scheduledCancel = subscription.scheduled_change?.action === 'cancel' ? subscription.scheduled_change.effective_at : null
   return {
     status: subscription.status,
-    expiresAt: active ? Date.parse(periodEnd) + GRACE : occurredAt,
+    expiresAt: active ? periodEnd + GRACE : occurredAt,
     cancelAt: scheduledCancel ? Date.parse(scheduledCancel) : null,
   }
 }
@@ -85,4 +86,26 @@ export async function cancelSubscription(config, subscriptionId) {
   })
   // déjà résilié : rien à faire
   if (!response.ok && response.status !== 400) throw new Error(`Paddle cancel : ${response.status} ${await response.text()}`)
+}
+
+/** Mois offert par le parrainage : prochain prélèvement repoussé d'un mois, sans facturer la différence. */
+export async function extendBilling(config, subscriptionId) {
+  const url = `${config.apiUrl}/subscriptions/${encodeURIComponent(subscriptionId)}`
+  const headers = { authorization: `Bearer ${config.apiKey}`, 'content-type': 'application/json' }
+  const current = await fetch(url, { headers })
+  if (!current.ok) throw new Error(`Paddle subscription : ${current.status} ${await current.text()}`)
+  const { data } = await current.json()
+  if (!data.next_billed_at) throw new Error(`Paddle subscription ${subscriptionId} sans prochain prélèvement`)
+  const next = new Date(data.next_billed_at)
+  const day = next.getUTCDate()
+  next.setUTCDate(1)
+  next.setUTCMonth(next.getUTCMonth() + 1)
+  // 31 janvier + 1 mois : dernier jour de février, pas le 3 mars.
+  next.setUTCDate(Math.min(day, new Date(Date.UTC(next.getUTCFullYear(), next.getUTCMonth() + 1, 0)).getUTCDate()))
+  const response = await fetch(url, {
+    method: 'PATCH',
+    headers,
+    body: JSON.stringify({ next_billed_at: next.toISOString(), proration_billing_mode: 'do_not_bill' }),
+  })
+  if (!response.ok) throw new Error(`Paddle next_billed_at : ${response.status} ${await response.text()}`)
 }
