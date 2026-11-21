@@ -24,9 +24,9 @@ export function consent() {
 function load() {
   loading ||= import('posthog-js').then(({ default: posthog }) => {
     posthog.init(TOKEN, {
-      // Relais Caddy de yidiano.com vers PostHog UE (moins bloqué par les bloqueurs de publicité). Hors production,
-      // /ingest n'existe pas : rien n'arrive dans PostHog depuis un test local.
-      api_host: '/ingest',
+      // Relais Caddy de yidiano.com vers PostHog UE, sous un nom neutre (les bloqueurs de publicité visent
+      // « posthog », « ingest »…). Hors production, /relay n'existe pas : rien n'arrive dans PostHog depuis un test.
+      api_host: '/relay',
       ui_host: 'https://eu.posthog.com',
       defaults: '2025-05-24',
       persistence: 'localStorage',

@@ -121,7 +121,8 @@ micro-entreprise et paiement Paddle décidés. Nom, domaine et détails : voir [
 - PostHog fait le 20/11/2026 : projet « Yidiano » (eu.posthog.com, projet 178420, fuseau Europe/Paris), chargé
   seulement après consentement (bandeau sur la page de présentation et dans l'app, Paramètres « Mesure d'audience »,
   lien « Cookies » en bas de la page de présentation ; `src/analytics.js`). Stockage localStorage, sans cookie ;
-  compte identifié par l'empreinte SHA-256 de l'adresse. Envoi par le relais Caddy `/ingest` de yidiano.com.
+  compte identifié par l'empreinte SHA-256 de l'adresse. Envoi par le relais Caddy `/relay` de yidiano.com (noms
+  neutres contre les bloqueurs ; ancien chemin `/ingest` gardé dans Caddy pour les versions en cache, à retirer).
   Propriétés de chaque événement : `surface` (landing / login / app), `installed` (app ouverte depuis l'écran
   d'accueil), et celles de PostHog (`$os`, `$device_type`, `$browser`). Événements : pages vues, `screen_viewed`,
   `signed_up` (premier lancement), `plus_viewed`, `free_limit_reached`, `checkout_opened`, `checkout_completed`

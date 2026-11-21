@@ -70,9 +70,10 @@ export default defineConfig({
         legalRefunds: fileURLToPath(new URL('./legal/remboursement.html', import.meta.url)),
         legalLicences: fileURLToPath(new URL('./legal/licences.html', import.meta.url)),
       },
-      // PostHog (src/analytics.js) : chargé seulement après consentement, donc nommé pour rester hors du pré-cache.
+      // PostHog (src/analytics.js) : chargé seulement après consentement, donc nommé pour rester hors du pré-cache, et
+      // sous un nom neutre (un fichier « posthog-… » est bloqué par les bloqueurs de publicité).
       output: {
-        chunkFileNames: chunk => (chunk.moduleIds.some(id => /[\\/]posthog-js[\\/]/.test(id)) ? 'assets/posthog-[hash].js' : 'assets/[name]-[hash].js'),
+        chunkFileNames: chunk => (chunk.moduleIds.some(id => /[\\/]posthog-js[\\/]/.test(id)) ? 'assets/m-[hash].js' : 'assets/[name]-[hash].js'),
       },
     },
   },
@@ -104,7 +105,7 @@ export default defineConfig({
         // version deployee ; le cache ne sert que hors ligne. Les assets ont un nom hashe, ils restent pre-caches.
         // Police : seuls les sous-ensembles latins (français + pinyin) sont utiles, les autres ne sont jamais chargés.
         globPatterns: ['**/*.{js,css,ico,png,svg,json}', '**/*latin*.woff2'],
-        globIgnores: ['hanzi/**', 'licences/**', 'assets/posthog-*.js'],
+        globIgnores: ['hanzi/**', 'licences/**', 'assets/m-*.js'],
         maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
         navigateFallback: null,
         importScripts: ['sw-reload.js'],
