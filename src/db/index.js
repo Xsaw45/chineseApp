@@ -9,12 +9,14 @@ const STORE = 'wordProgress'
 export const REMOTE_PROGRESS_EVENT = 'langues:zh-progress'
 
 let dbPromise = null
+let storeCreated = false // base créée à ce lancement : voir isLocalEmpty
 
 function getDB() {
   if (!dbPromise) {
     dbPromise = openDB(DB_NAME, DB_VERSION, {
       upgrade(db) {
         if (!db.objectStoreNames.contains(STORE)) {
+          storeCreated = true
           const store = db.createObjectStore(STORE, { keyPath: 'wordId' })
           store.createIndex('level', 'level')
           store.createIndex('nextReview', 'nextReview')
@@ -41,6 +43,11 @@ export const sync = createSync({
     const db = await getDB()
     await db.clear(STORE)
     window.dispatchEvent(new Event(REMOTE_PROGRESS_EVENT))
+  },
+  // Base recréée à ce lancement (le navigateur l'avait effacée) ou vide : la progression doit être redemandée.
+  async isLocalEmpty() {
+    const db = await getDB()
+    return storeCreated || (await db.count(STORE)) === 0
   },
 })
 

@@ -48,6 +48,25 @@ async function sync(login, body) {
   return { status: res.statusCode, body: res.json() }
 }
 
+test('journée d activité : un appareil sans la version du serveur ne l efface pas, il la complète', async () => {
+  const day = { wordId: 'act_2026-11-20', level: 'activity', practiced: true, learned: 3, done: ['vocab'], seconds: 900 }
+  await sync('a@x.fr', { changes: [{ key: day.wordId, value: day, updatedAt: 100 }] })
+
+  // Second appareil, resté sans cette journée : il ajoute 5 s de pratique à une journée vide, plus récente.
+  const blank = { wordId: 'act_2026-11-20', level: 'activity', practiced: false, learned: 0, done: [], seconds: 5 }
+  const res = await sync('a@x.fr', { since: 0, changes: [{ key: day.wordId, value: blank, updatedAt: 200 }] })
+  const merged = { ...day, seconds: 900 }
+  // La version fusionnée lui revient, plus récente que ce qu'il a envoyé.
+  assert.deepEqual(res.body.changes.find(c => c.key === day.wordId), { key: day.wordId, value: merged, updatedAt: 201 })
+
+  // Un appareil à jour qui ajoute du temps : accepté tel quel, sans aller-retour.
+  const more = { ...merged, seconds: 1200, done: ['vocab', 'hanzi'] }
+  const accepted = await sync('a@x.fr', { since: res.body.cursor, changes: [{ key: day.wordId, value: more, updatedAt: 300 }] })
+  assert.deepEqual(accepted.body.changes, [])
+  const all = await sync('a@x.fr', { since: 0 })
+  assert.deepEqual(all.body.changes.find(c => c.key === day.wordId).value, more)
+})
+
 test('le changement le plus recent gagne, quel que soit l ordre d arrivee', async () => {
   await sync('a@x.fr', { changes: [{ key: 'hsk1_1', value: { phase: 2 }, updatedAt: 200 }] })
   const late = await sync('a@x.fr', { changes: [{ key: 'hsk1_1', value: { phase: 0 }, updatedAt: 100 }] })

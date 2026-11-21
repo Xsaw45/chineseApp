@@ -1,5 +1,21 @@
 import { DatabaseSync } from 'node:sqlite'
 
+// Journées d'activité (src/utils/activity.js) : chaque appareil écrit ses propres totaux du jour.
+const ACTIVITY = /^act_\d{4}-\d{2}-\d{2}$/
+const isPracticed = day => day.practiced !== false // absent : enregistrement d'avant ce champ, toujours pratiqué
+
+/** Union de deux versions d'une même journée : pratiquée si l'une l'est, totaux maximaux, étapes réunies. */
+function mergeActivity(a, b) {
+  const max = field => Math.max(a[field] || 0, b[field] || 0)
+  const merged = { ...a, ...b, practiced: isPracticed(a) || isPracticed(b), learned: max('learned'), seconds: max('seconds') }
+  if (a.done || b.done) merged.done = [...new Set([...(a.done || []), ...(b.done || [])])]
+  if ('vocabTests' in a || 'vocabTests' in b) merged.vocabTests = max('vocabTests')
+  return merged
+}
+
+/** JSON indépendant de l'ordre des clés, pour comparer deux versions. */
+const canonical = value => JSON.stringify(Object.keys(value).sort().map(key => [key, value[key]]))
+
 // Progression par utilisateur : un enregistrement par (user, app, key), le plus recent (updated_at, horloge de
 // l'appareil) gagne. seq = compteur global, incremente a chaque ecriture acceptee : un appareil demande
 // "tout ce qui a change depuis seq N" (son curseur).
@@ -67,6 +83,10 @@ export function openDb(path) {
     ON CONFLICT (user, app, key) DO UPDATE
       SET value = excluded.value, updated_at = excluded.updated_at, seq = excluded.seq
       WHERE excluded.updated_at > records.updated_at
+  `)
+  const putRecord = db.prepare(`
+    INSERT INTO records (user, app, key, value, updated_at, seq) VALUES (?, ?, ?, ?, ?, ?)
+    ON CONFLICT (user, app, key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at, seq = excluded.seq
   `)
   const getRecord = db.prepare('SELECT key, value, updated_at, seq FROM records WHERE user = ? AND app = ? AND key = ?')
   const changedSince = db.prepare(
@@ -148,6 +168,22 @@ export function openDb(path) {
         const accepted = new Map()
         const rejected = new Set()
         for (const { key, value, updatedAt } of changes) {
+          // Journée d'activité (act_AAAA-MM-JJ) : fusionnée avec celle du serveur au lieu de la remplacer. Un appareil
+          // qui ne l'a pas encore reçue repart d'une journée vide et effacerait sinon la pratique des autres.
+          const existing = ACTIVITY.test(key) && value !== null ? getRecord.get(user, app, key) : null
+          if (existing?.value) {
+            const merged = mergeActivity(JSON.parse(existing.value), value)
+            if (canonical(merged) === canonical(value) && updatedAt > existing.updated_at) {
+              putRecord.run(user, app, key, JSON.stringify(value), updatedAt, seq)
+              accepted.set(key, updatedAt)
+            } else {
+              // Version fusionnée, plus récente que les deux : renvoyée à l'appareil (pas marquée acceptée).
+              putRecord.run(user, app, key, JSON.stringify(merged), Math.max(existing.updated_at, updatedAt) + 1, seq)
+              accepted.delete(key)
+            }
+            rejected.delete(key)
+            continue
+          }
           const json = value === null ? null : JSON.stringify(value)
           if (upsert.run(user, app, key, json, updatedAt, seq).changes) {
             accepted.set(key, updatedAt)

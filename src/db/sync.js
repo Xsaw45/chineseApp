@@ -4,18 +4,23 @@
  * Chaque app decrit sa progression en enregistrements { key, value } (value null = supprime) :
  *  - track(changes)        : modifications locales, envoyees peu apres (et conservees hors ligne) ;
  *  - applyRemote(records)  : fourni par l'app, ecrit localement ce qui vient du serveur (sans le re-signaler) ;
- *  - resetLocal()          : fourni par l'app, efface les donnees locales (appareil passe a un autre utilisateur).
+ *  - resetLocal()          : fourni par l'app, efface les donnees locales (appareil passe a un autre utilisateur) ;
+ *  - isLocalEmpty()        : fourni par l'app, vrai si aucune progression n'est gardee sur l'appareil.
  * Fusion enregistrement par enregistrement : le plus recent (horloge de l'appareil) gagne, le serveur tranche.
- * L'etat de synchronisation est dans localStorage["langues-sync:<app>"].
+ * L'etat de synchronisation est dans localStorage["langues-sync:<app>"], la progression dans IndexedDB : le navigateur
+ * peut vider l'un sans l'autre. Progression vide avec un curseur avance : tout est redemande au serveur.
  */
 const BATCH = 1000
 const DEBOUNCE_MS = 1500
 const POLL_MS = 60_000
 const MAX_ROUNDS = 50
+// Version de l'état de synchronisation ; un état plus ancien redemande toute la progression au serveur une fois.
+// 2 (21/11/2026) : appareils restés vides après un effacement d'IndexedDB sans celui de localStorage.
+const META_VERSION = 2
 
-export function createSync({ app, applyRemote, resetLocal }) {
+export function createSync({ app, applyRemote, resetLocal, isLocalEmpty }) {
   const metaKey = `langues-sync:${app}`
-  const emptyMeta = (user = null) => ({ user, cursor: 0, pending: {}, lastSync: null })
+  const emptyMeta = (user = null) => ({ version: META_VERSION, user, cursor: 0, pending: {}, lastSync: null })
   let meta = loadMeta()
   let timer = null
   let running = null
@@ -25,7 +30,9 @@ export function createSync({ app, applyRemote, resetLocal }) {
   function loadMeta() {
     try {
       const stored = JSON.parse(localStorage.getItem(metaKey))
-      if (stored && Number.isInteger(stored.cursor) && stored.pending) return stored
+      if (stored && Number.isInteger(stored.cursor) && stored.pending) {
+        return stored.version === META_VERSION ? stored : { ...stored, version: META_VERSION, cursor: 0 }
+      }
     } catch { /* meta illisible : on repart de zero, le serveur renverra tout */ }
     return emptyMeta()
   }
@@ -133,7 +140,13 @@ export function createSync({ app, applyRemote, resetLocal }) {
           if (document.visibilityState === 'visible') syncSoon(0)
         }, POLL_MS)
       }
-      const first = syncNow().catch((err) => console.debug('[sync]', err.message))
+      const first = (async () => {
+        if (meta.cursor > 0 && (await isLocalEmpty())) {
+          meta.cursor = 0
+          saveMeta()
+        }
+        await syncNow()
+      })().catch((err) => console.debug('[sync]', err.message))
       return Promise.race([first, new Promise((resolve) => setTimeout(resolve, timeout))])
     },
   }
