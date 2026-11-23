@@ -14,6 +14,7 @@ RUN cd server && npm ci --omit=dev --no-audit --no-fund
 COPY server/ ./server/
 # grammaire et lectures : le serveur sert le contenu Yidiano+ (content/split.js)
 COPY content/ ./content/
+COPY src/data/readingLines.js ./src/data/readingLines.js
 COPY --from=web /src/dist/ ./public/
 RUN mkdir -p /data && chown node:node /data
 USER node
