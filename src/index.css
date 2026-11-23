@@ -22,7 +22,8 @@
   --color-seal-hover: #b91c1c;
   --color-accent: #ef4444;
   --color-good: #4cc38a;
-  --color-bad: #e5484d;
+  --color-warn: #f5a34e;
+  --color-danger: #e5484d;
 
   --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
 }

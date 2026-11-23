@@ -8,14 +8,15 @@ import { optionClass } from './uiStyles.js'
 const tokenClass = 'h-11 rounded-lg border border-line bg-raised px-3 chinese-text text-xl text-fg transition-colors duration-150 ease-out hover:bg-raised-2 disabled:hover:bg-raised'
 
 /** Remettre dans l'ordre : toucher les mots pour les placer, toucher un mot placé pour le retirer. */
-function OrderQuestion({ question, answered, onAnswer }) {
+function OrderQuestion({ question, correct, onAnswer }) {
   const { t } = useLang()
   const [placed, setPlaced] = useState([])
   const remaining = question.tokens.filter(token => !placed.includes(token))
+  const answered = correct !== null
 
   return (
     <>
-      <div className={`flex min-h-14 flex-wrap gap-2 rounded-xl border border-line bg-card p-2 ${answered ? 'mb-4' : 'mb-3'}`}>
+      <div className={`flex min-h-14 flex-wrap gap-2 rounded-xl border bg-card p-2 ${answered ? `mb-4 ${correct ? 'border-good/40' : 'border-warn/40'}` : 'mb-3 border-line'}`}>
         {placed.map(token => (
           <button key={token.id} type="button" disabled={answered} onClick={() => setPlaced(p => p.filter(x => x !== token))} className={tokenClass}>
             {token.text}
@@ -44,7 +45,7 @@ function Gap({ gap, answer, revealed }) {
   return (
     <span className="hanzi-display">
       {gap.before}
-      <span className={`mx-1 inline-block min-w-[1.1em] border-b-2 ${revealed ? 'border-accent text-accent' : 'border-fg-3 text-transparent'}`}>
+      <span className={`mx-1 inline-block min-w-[1.1em] border-b-2 ${revealed ? 'border-good text-good' : 'border-fg-3 text-transparent'}`}>
         {revealed ? answer : '　'}
       </span>
       {gap.after}
@@ -133,7 +134,7 @@ export function GrammarQuiz({ questions, onExit, onFinish }) {
         <Prompt question={question} answered={answered} />
 
         {question.type === 'order' ? (
-          <OrderQuestion key={question.key} question={question} answered={answered} onAnswer={answer} />
+          <OrderQuestion key={question.key} question={question} correct={answered ? lastCorrect : null} onAnswer={answer} />
         ) : (
           <ChoiceQuestion
             question={question}

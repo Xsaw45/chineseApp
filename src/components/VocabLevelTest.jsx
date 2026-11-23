@@ -66,10 +66,11 @@ export function VocabLevelTest({ mode, level, progressMap, applyUpdates, onPlace
     const caption = placement
       ? (result.reached ? t('lt.placedCaption', { level: result.reached, next: result.reached + 1 }) : t('lt.beginnerCaption'))
       : t(result.passed ? 'lt.unlockPassed' : 'lt.unlockFailed', { level, pct: pct(UNLOCK_PASS) })
+    const good = placement ? (result.reached > 0 || undefined) : result.passed
     return (
       <Screen className="px-5 pb-8">
         <div className="my-auto">
-          <Score value={value} label={t(placement ? 'lt.placedLabel' : 'lt.unlockLabel', { level })} caption={caption} good={placement ? result.reached > 0 : result.passed} />
+          <Score value={value} label={t(placement ? 'lt.placedLabel' : 'lt.unlockLabel', { level })} caption={caption} good={good} />
           <p className="text-center text-sm text-fg-3">{t('lt.howReviewed')}</p>
         </div>
         <Button onClick={onExit}>{t('lt.continue')}</Button>

@@ -7,7 +7,7 @@ import { ICON_SM } from './uiStyles.js'
 export function LessonStatus({ progress, unlocked }) {
   const { t, pct } = useLang()
   if (!unlocked) return <Lock {...ICON_SM} className="text-fg-3" />
-  if (progress.known && isLessonDue(progress)) return <span className="text-sm text-accent">{t('common.toRevise')}</span>
+  if (progress.known && isLessonDue(progress)) return <span className="text-sm text-warn">{t('common.toRevise')}</span>
   if (isLessonPassed(progress)) {
     return <span className="inline-flex items-center gap-1 text-sm tabular-nums text-good"><Check {...ICON_SM} />{pct(progress.bestPct)}</span>
   }

@@ -37,7 +37,7 @@ export function CharacterDetail({ ch, onBack }) {
         <div className="pt-2">
           <HanziBoard key={`${ch.c}-${mode}-${runKey}`} char={ch.c} mode={mode} outline showRadical={mode === 'animate'} controls={mode === 'animate'} strokeCount={ch.strokes} onReplay={replay} onMistake={setMistakes} onComplete={setMistakes} />
         </div>
-        <p className="mt-2 h-5 text-center text-sm tabular-nums text-fg-3">{mistakes !== null && t('hz.mistakes', { n: mistakes })}</p>
+        <p className="mt-2 h-5 text-center text-sm tabular-nums text-fg-3" aria-live="polite">{mistakes !== null && t('hz.mistakes', { n: mistakes })}</p>
         <div className={`mt-2 grid gap-2 ${mode === 'quiz' ? 'grid-cols-2' : 'grid-cols-1'}`}>
           {mode === 'quiz' && <Button variant="secondary" onClick={replay}><RotateCcw {...ICON} />{t('hz.replay')}</Button>}
           <Button variant="secondary" onClick={trace}><PenLine {...ICON} />{t('hz.trace')}</Button>

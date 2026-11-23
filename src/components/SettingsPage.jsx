@@ -86,7 +86,7 @@ function DeleteAccount({ email }) {
     return <Button variant="secondary" className="mt-2" onClick={() => setOpen(true)}><Trash2 {...ICON} />{t('settings.delete')}</Button>
   }
   return (
-    <div className="mt-3 rounded-2xl border border-bad/40 bg-card p-4">
+    <div className="mt-3 rounded-2xl border border-danger/40 bg-card p-4">
       <p className="text-[15px] leading-relaxed text-fg-2">{t('settings.deleteWarning')}</p>
       <label className="mt-4 block text-sm text-fg-2">
         {t('settings.deleteConfirm')}
@@ -102,7 +102,7 @@ function DeleteAccount({ email }) {
         <Button variant="secondary" onClick={() => setOpen(false)}>{t('settings.deleteCancel')}</Button>
         <Button onClick={remove} disabled={!matches || state === 'deleting'}>{t(state === 'deleting' ? 'settings.deleting' : 'settings.deleteFinal')}</Button>
       </div>
-      {state === 'error' && <p role="alert" className="mt-3 text-sm text-bad">{t('settings.deleteError')}</p>}
+      {state === 'error' && <p role="alert" className="mt-3 text-sm text-warn">{t('settings.deleteError')}</p>}
     </div>
   )
 }

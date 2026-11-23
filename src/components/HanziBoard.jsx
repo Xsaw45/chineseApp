@@ -53,6 +53,7 @@ export function HanziBoard({
   const positionRef = useRef(0)
   const [size] = useState(() => Math.min(300, window.innerWidth - 40)) // toute la largeur utile, 300 px au plus
   const [failed, setFailed] = useState(false)
+  const [strokeMissed, setStrokeMissed] = useState(false)
   const [ready, setReady] = useState(!controls)
   const [playing, setPlaying] = useState(controls && mode === 'animate')
   const [position, setPosition] = useState(0)
@@ -73,10 +74,11 @@ export function HanziBoard({
       padding: 12,
       showCharacter: false,
       showOutline: mode === 'animate' || outline,
-      strokeColor: themeColor('fg'),
-      radicalColor: showRadical ? themeColor('accent') : null,
+      strokeColor: themeColor(mode === 'quiz' ? 'good' : 'fg'),
+      radicalColor: mode === 'animate' && showRadical ? themeColor('accent') : null,
       outlineColor: themeColor('raised-2'),
-      highlightColor: themeColor('accent'),
+      highlightColor: themeColor('warn'),
+      highlightCompleteColor: themeColor('good'),
       drawingColor: themeColor('fg-2'),
       drawingWidth: 6,
       strokeAnimationSpeed: 1.2,
@@ -100,8 +102,14 @@ export function HanziBoard({
       writer.animateCharacter()
     } else {
       writer.quiz({
+        // Sans modèle, le geste prime sur le placement exact ; l'ordre et le sens restent vérifiés.
+        leniency: outline ? 1 : 1.5,
         showHintAfterMisses: 3,
-        onMistake: data => callbacks.current.onMistake?.(data.totalMistakes),
+        onCorrectStroke: () => setStrokeMissed(false),
+        onMistake: data => {
+          setStrokeMissed(true)
+          callbacks.current.onMistake?.(data.totalMistakes)
+        },
         onComplete: data => callbacks.current.onComplete?.(data.totalMistakes),
       })
     }
@@ -165,7 +173,7 @@ export function HanziBoard({
 
   return (
     <div>
-      <div className="relative mx-auto touch-none select-none rounded-2xl border border-line bg-card" style={{ width: size, height: size }}>
+      <div className={`relative mx-auto touch-none select-none rounded-2xl border bg-card ${mode === 'quiz' && strokeMissed ? 'border-warn' : 'border-line'}`} style={{ width: size, height: size }}>
         <svg className="pointer-events-none absolute inset-0 text-line-2" width={size} height={size} aria-hidden="true">
           <g stroke="currentColor" strokeWidth="1" strokeDasharray="4 6">
             <line x1="0" y1={size / 2} x2={size} y2={size / 2} />

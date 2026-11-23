@@ -14,6 +14,16 @@ Feuille de route : [ROADMAP.md](ROADMAP.md) ; vente : [COMMERCIALISATION.md](COM
 | `server/` | Node 24 + Fastify : fichiers statiques, connexion par e-mail, synchronisation, contenu Yidiano+, paiement Paddle, SQLite (`node:sqlite`) |
 | `scripts/` | construction des données (vocabulaire, audio, caractères) |
 
+Dans l’application, l’orange signale une erreur ou un élément à revoir. Le vert indique
+une réussite ou montre la bonne réponse. Les boutons d’action gardent leurs couleurs.
+
+## Écriture des caractères
+
+Le tracé guidé garde la précision du modèle. En révision de mémoire, Hanzi Writer accepte
+des traits moins précis ou décalés, sans supprimer la vérification de leur forme, de leur
+sens et de leur ordre. Après trois erreurs sur un trait, l’app montre le geste attendu.
+Un trait refusé signale la case en orange jusqu’à la prochaine réussite ; les traits validés restent verts.
+
 ## Synchronisation et comptes
 
 - **Connexion** (`server/auth.js`) : lien ou code à 6 chiffres valables 15 minutes, session d'un an (cookie

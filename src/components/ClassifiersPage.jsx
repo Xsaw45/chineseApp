@@ -10,7 +10,7 @@ import { ICON_SM } from './uiStyles.js'
 
 function Status({ progress }) {
   const { t } = useLang()
-  if (progress.known && isDueForReview(progress)) return <span className="text-sm text-accent">{t('common.toReview')}</span>
+  if (progress.known && isDueForReview(progress)) return <span className="text-sm text-warn">{t('common.toReview')}</span>
   if (progress.known) return <span className="inline-flex items-center gap-1 text-sm text-good"><Check {...ICON_SM} />{t('common.mastered')}</span>
   if (progress.successCount > 0) return <span className="text-sm tabular-nums text-fg-3">{progress.successCount} / 3</span>
   return null

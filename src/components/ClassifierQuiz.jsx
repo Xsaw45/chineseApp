@@ -11,7 +11,7 @@ function Phrase({ example, char, revealed }) {
   return (
     <span className="hanzi-display">
       {example.zh.slice(0, i)}
-      <span className={`mx-1 inline-block min-w-[1.1em] border-b-2 ${revealed ? 'border-accent text-accent' : 'border-fg-3 text-transparent'}`}>
+      <span className={`mx-1 inline-block min-w-[1.1em] border-b-2 ${revealed ? 'border-good text-good' : 'border-fg-3 text-transparent'}`}>
         {char}
       </span>
       {example.zh.slice(i + char.length)}

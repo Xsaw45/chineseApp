@@ -29,7 +29,8 @@
     button.link { height: auto; padding: 0.5rem 0; background: none; color: #a1a1a6; font-weight: 400; font-size: 0.9375rem; text-decoration: underline;
       text-underline-offset: 3px; text-decoration-color: rgb(237 237 237 / 0.14); }
     button.link:hover { color: #ededed; background: none; }
-    .error { color: #e5484d; font-size: 0.9375rem; min-height: 1.4em; }
+    .message { color: #f5a34e; font-size: 0.9375rem; min-height: 1.4em; }
+    .success { color: #4cc38a; }
     .row { display: flex; justify-content: space-between; gap: 1rem; }
     /* Bouton Google, version sombre de la charte Google (fond #131314, bord #8E918F, logo en couleurs). */
     .google { display: flex; align-items: center; justify-content: center; gap: 0.75rem; height: 3.25rem; border-radius: 0.75rem;
@@ -58,18 +59,18 @@
       <form id="email-form">
         <label for="email" data-t="emailLabel"></label>
         <input id="email" type="email" autocomplete="email" inputmode="email" required>
-        <p class="error" id="email-error" role="alert"></p>
+        <p class="message" id="email-error" role="alert"></p>
         <button type="submit" data-t="send"></button>
       </form>
     </section>
 
     <section id="step-code" hidden>
       <h1 data-t="checkTitle"></h1>
-      <p id="sent-to"></p>
+      <p class="success" id="sent-to"></p>
       <form id="code-form">
         <label for="code" data-t="codeLabel"></label>
         <input id="code" class="code" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" maxlength="6" required>
-        <p class="error" id="code-error" role="alert"></p>
+        <p class="message" id="code-message" role="status"></p>
         <button type="submit" data-t="confirm"></button>
         <div class="row">
           <button type="button" class="link" id="change" data-t="change"></button>

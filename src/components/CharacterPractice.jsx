@@ -84,6 +84,7 @@ export function CharacterPractice({ items, progressMap, applyUpdates, onExit, on
             <SpeakButton src={charSrc(ch)} text={audioContext?.text ?? ch.c} />
           </div>
           <p className="mt-1 text-[15px] text-fg">{charSenses(ch, lang).slice(0, 3).join('; ')}</p>
+          {!trace && !outcome && <p className="mt-2 text-sm text-fg-3">{t('hz.forgiving')}</p>}
         </div>
 
         <HanziBoard
@@ -91,7 +92,6 @@ export function CharacterPractice({ items, progressMap, applyUpdates, onExit, on
           char={ch.c}
           mode={outcome && !outcome.correct ? 'animate' : 'quiz'}
           outline={trace}
-          showRadical
           onMistake={setMistakes}
           onComplete={total => finish(total <= allowedMistakes(ch), total)}
         />
@@ -100,11 +100,11 @@ export function CharacterPractice({ items, progressMap, applyUpdates, onExit, on
           <div className="mt-4 flex flex-col gap-4">
             <Feedback correct={outcome.correct}>
               <p className="flex items-baseline gap-2">
-                <span className="hanzi-display text-2xl text-fg">{ch.c}</span>
+                <span className={`hanzi-display text-2xl ${outcome.correct ? 'text-good' : 'text-warn'}`}>{ch.c}</span>
                 <span className="text-[15px] text-fg-2">{ch.pinyin}</span>
               </p>
               <p className="mt-2 text-[15px] text-fg">
-                {t('hz.radical')} <span className="hanzi-display text-accent">{radical.forms.slice(0, 2).join(' ')}</span> · {l(radical.meaning)} · {t('hz.strokes')} {ch.strokes}
+                {t('hz.radical')} <span className="hanzi-display">{radical.forms.slice(0, 2).join(' ')}</span> · {l(radical.meaning)} · {t('hz.strokes')} {ch.strokes}
               </p>
               {outcome.mistakes !== null && (
                 <p className="mt-1 text-sm tabular-nums text-fg-3">{t('hz.result', { n: outcome.mistakes, max: allowedMistakes(ch) })}</p>
@@ -114,7 +114,7 @@ export function CharacterPractice({ items, progressMap, applyUpdates, onExit, on
           </div>
         ) : (
           <div className="mt-3 flex flex-col items-center gap-3">
-            <p className="text-sm tabular-nums text-fg-3">{t('hz.mistakes', { n: mistakes })} · {t('hz.hint')}</p>
+            <p className="text-sm tabular-nums text-fg-3"><span aria-live="polite">{t('hz.mistakes', { n: mistakes })}</span> · {t('hz.hint')}</p>
             <Button variant="secondary" onClick={() => finish(false, null)}>{t('hz.giveUp')}</Button>
           </div>
         )}

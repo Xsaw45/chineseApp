@@ -6,6 +6,6 @@ export const ICON_SM = { size: 16, strokeWidth: 1.5, 'aria-hidden': true }
 export function optionClass({ answered, correct, chosen }) {
   if (!answered) return 'border-line bg-card text-fg hover:bg-raised'
   if (correct) return 'border-good/40 bg-good/10 text-fg'
-  if (chosen) return 'border-bad/40 bg-bad/10 text-fg'
+  if (chosen) return 'border-warn/40 bg-warn/10 text-fg'
   return 'border-line bg-card text-fg-3'
 }

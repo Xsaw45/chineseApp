@@ -94,7 +94,7 @@ export function Feedback({ correct, aside, children }) {
   return (
     <section className="rounded-2xl border border-line bg-card p-4">
       <div className="mb-2 flex items-center justify-between gap-3">
-        <p className={`inline-flex items-center gap-2 text-base font-medium ${correct ? 'text-good' : 'text-bad'}`}>
+        <p className={`inline-flex items-center gap-2 text-base font-medium ${correct ? 'text-good' : 'text-warn'}`}>
           {correct ? <Check {...ICON} /> : <X {...ICON} />}
           {t(correct ? 'common.correct' : 'common.incorrect')}
         </p>
@@ -105,11 +105,11 @@ export function Feedback({ correct, aside, children }) {
   )
 }
 
-/** En-tête d'une page de résultat. */
+/** En-tête d'une page de résultat ; sans verdict, le score reste neutre. */
 export function Score({ value, label, caption, good }) {
   return (
     <div className="pt-12 pb-10 text-center">
-      <p className={`text-[56px] font-medium leading-none tabular-nums ${good ? 'text-good' : 'text-fg'}`}>{value}</p>
+      <p className={`text-[56px] font-medium leading-none tabular-nums ${good === undefined ? 'text-fg' : good ? 'text-good' : 'text-warn'}`}>{value}</p>
       <p className="mt-3 text-lg text-fg-2">{label}</p>
       {caption && <p className="mt-1 text-[15px] text-fg-3">{caption}</p>}
     </div>

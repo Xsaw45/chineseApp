@@ -112,9 +112,14 @@ async function withButton(form, action) {
   try { await action() } finally { button.disabled = false }
 }
 
-async function requestCode(errorEl) {
+function showMessage(el, text, success = false) {
+  el.classList.toggle('success', success)
+  el.textContent = text
+}
+
+async function requestCode(messageEl, confirmation = '') {
   const { error, code } = await post('request', { email, lang, next })
-  errorEl.textContent = error || ''
+  showMessage(messageEl, error || confirmation, !error && Boolean(confirmation))
   capture(error ? 'login_code_failed' : 'login_code_requested', error ? { step: 'request', error: code } : undefined)
   return !error
 }
@@ -133,7 +138,7 @@ $('email-form').addEventListener('submit', (event) => {
     if (await requestCode($('email-error'))) {
       $('sent-to').textContent = t.sentTo.replace('{email}', email)
       $('code').value = ''
-      $('code-error').textContent = ''
+      showMessage($('code-message'), '')
       show('step-code')
     }
   })
@@ -144,15 +149,13 @@ $('code-form').addEventListener('submit', (event) => {
   withButton(event.target, async () => {
     const { error, code } = await post('verify', { email, code: $('code').value.trim() })
     if (!error) return signedIn('code')
-    $('code-error').textContent = error
+    showMessage($('code-message'), error)
     capture('login_code_failed', { step: 'verify', error: code })
   })
 })
 
 $('change').addEventListener('click', () => show('step-email'))
-$('resend').addEventListener('click', async () => {
-  if (await requestCode($('code-error'))) $('code-error').textContent = t.resent
-})
+$('resend').addEventListener('click', () => requestCode($('code-message'), t.resent))
 
 // Lien de l'e-mail : la connexion attend un clic (les antivirus de messagerie ouvrent les liens tout seuls).
 if (token) {

@@ -12,13 +12,13 @@ import { Button, PlusBadge, Screen, TopBar } from './ui.jsx'
 import { ICON } from './uiStyles.js'
 
 /**
- * Case de la grille : bordure verte maîtrisé, rouge à réviser, trait d'avancement en cours d'apprentissage ;
+ * Case de la grille : bordure verte maîtrisé, orange à réviser, trait d'avancement en cours d'apprentissage ;
  * locked : caractère Yidiano+ vu depuis la formule gratuite (estompé, cadenas, ouvre Yidiano+).
  */
 function CharTile({ ch, progress, locked, onOpen }) {
   const { t } = useLang()
   const state = progress.known ? (isDueForReview(progress) ? 'due' : 'known') : progress.successCount > 0 ? 'learning' : 'new'
-  const border = { known: 'border-good/40', due: 'border-accent/60', learning: 'border-line-2', new: 'border-line' }[state]
+  const border = { known: 'border-good/40', due: 'border-warn/60', learning: 'border-line-2', new: 'border-line' }[state]
   return (
     <button
       type="button"

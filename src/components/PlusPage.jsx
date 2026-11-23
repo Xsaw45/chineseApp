@@ -156,7 +156,7 @@ export function PlusPage({ onBack, onOpenReferral }) {
           <p className="hanzi-display text-5xl text-accent">一点</p>
           <h1 className="mt-4 text-3xl font-medium text-fg">{t('plus.title')}</h1>
           <p className="mt-2 text-[16px] leading-relaxed text-fg-2">{t('plus.subtitle')}</p>
-          <p className="mt-4 inline-flex rounded-full bg-raised px-3 py-1.5 text-sm font-medium text-fg-2">{status}</p>
+          <p className={`mt-4 inline-flex rounded-full bg-raised px-3 py-1.5 text-sm font-medium ${access?.plus ? 'text-good' : 'text-fg-2'}`}>{status}</p>
         </header>
 
         <div className="mt-8 grid gap-3">
@@ -165,7 +165,7 @@ export function PlusPage({ onBack, onOpenReferral }) {
             <p className="mt-2 text-[15px] leading-relaxed text-fg-2">{t('plus.freeDetail')}</p>
           </section>
           <section className="rounded-2xl border border-accent/40 bg-card p-5">
-            <h2 className="flex items-center gap-2 font-medium text-fg"><Check {...ICON_SM} className="text-accent" />{t('plus.fullIncluded')}</h2>
+            <h2 className="flex items-center gap-2 font-medium text-fg"><Check {...ICON_SM} className="text-good" />{t('plus.fullIncluded')}</h2>
             <p className="mt-2 text-[15px] leading-relaxed text-fg-2">{t('plus.fullDetail')}</p>
           </section>
         </div>
@@ -223,7 +223,7 @@ export function PlusPage({ onBack, onOpenReferral }) {
         )}
         {checkout === 'activating' && !subscribed && <p role="status" className="mt-3 text-center text-[15px] text-fg-2">{t('plus.activating')}</p>}
         {checkout === 'slow' && !subscribed && <p role="status" className="mt-3 text-center text-[15px] text-fg-2">{t('plus.activationSlow')}</p>}
-        {checkout === 'error' && <p role="alert" className="mt-3 text-center text-sm text-bad">{t('plus.paymentError')}</p>}
+        {checkout === 'error' && <p role="alert" className="mt-3 text-center text-sm text-warn">{t('plus.paymentError')}</p>}
 
         {canSubscribe && paddle === null && !access?.plus && (
           <p className="mt-8 text-center text-[15px] text-fg-2">{t('plus.availableSoon')}</p>
@@ -232,7 +232,7 @@ export function PlusPage({ onBack, onOpenReferral }) {
         {access?.subscription && (
           <div className="mt-8">
             <Button variant="secondary" onClick={openPortal} disabled={portal === 'opening'}>{t('plus.manage')}</Button>
-            {portal === 'error' && <p role="alert" className="mt-2 text-center text-sm text-bad">{t('plus.manageError')}</p>}
+            {portal === 'error' && <p role="alert" className="mt-2 text-center text-sm text-warn">{t('plus.manageError')}</p>}
           </div>
         )}
 
