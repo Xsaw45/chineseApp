@@ -1,4 +1,3 @@
-import { FREE_VOCAB_TESTS_PER_DAY } from '../access/rules.js'
 import { LevelCard } from './LevelCard.jsx'
 import { ALL_LEVELS, getWordsForLevel } from '../data/index.js'
 import { isActive, isDueForReview, createInitialProgress } from '../utils/spacedrep.js'
@@ -20,11 +19,8 @@ function countWords(progressMap, unlockedLevels) {
   return counts
 }
 
-/**
- * placementDone : test de niveau déjà fait ; sinon une invitation à le faire s'affiche en haut.
- * testsLeft : tests de vocabulaire encore permis aujourd'hui (formule gratuite), null sans limite.
- */
-export function Dashboard({ hasPlus, onUpgrade, levelStats, unlockedLevels, progressMap, placementDone, testsLeft, onStartPlacement, onStartUnlockTest, onStartQuiz, onOpenVocabulary, onBack }) {
+/** placementDone : test de niveau déjà fait ; sinon une invitation à le faire s'affiche en haut. */
+export function Dashboard({ hasPlus, onUpgrade, levelStats, unlockedLevels, progressMap, placementDone, onStartPlacement, onStartUnlockTest, onStartQuiz, onOpenVocabulary, onBack }) {
   const { t } = useLang()
   const accessibleLevels = hasPlus ? unlockedLevels : [1]
   const counts = countWords(progressMap, accessibleLevels)
@@ -46,19 +42,10 @@ export function Dashboard({ hasPlus, onUpgrade, levelStats, unlockedLevels, prog
 
         {!placementDone && <PlacementInvite onStart={onStartPlacement} className="mb-6" />}
         <div className="flex flex-col gap-2">
-          {testsLeft === 0 ? (
-            <Button onClick={onUpgrade}>{t('vocab.limitReached')}</Button>
-          ) : (
-            <Button onClick={onStartQuiz} disabled={!canStart}>
-              {canStart ? t('vocab.start', { n: Math.min(activeCount, 20) }) : t('vocab.nothing')}
-            </Button>
-          )}
-          {testsLeft !== null && (
-            <p className="text-center text-sm tabular-nums text-fg-3">
-              {testsLeft === 0 ? t('vocab.limitHint', { n: FREE_VOCAB_TESTS_PER_DAY }) : t('vocab.testsLeft', { n: testsLeft, max: FREE_VOCAB_TESTS_PER_DAY })}
-            </p>
-          )}
-          {!canStart && testsLeft !== 0 && <p className="text-center text-sm text-fg-3">{t('vocab.nothingHint')}</p>}
+          <Button onClick={onStartQuiz} disabled={!canStart}>
+            {canStart ? t('vocab.start', { n: Math.min(activeCount, 20) }) : t('vocab.nothing')}
+          </Button>
+          {!canStart && <p className="text-center text-sm text-fg-3">{t('vocab.nothingHint')}</p>}
           <Button variant="secondary" onClick={onOpenVocabulary}>{t('vocab.list')}</Button>
           <p className="mt-1 text-center text-sm tabular-nums text-fg-2">
             {t('vocab.status', { learning: counts.learning, limit: LEARNING_LIMIT, due: counts.due })}

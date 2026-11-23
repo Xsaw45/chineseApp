@@ -28,7 +28,7 @@ Retenu : **Yidiano**, yidiano.com (OVH, nom de domaine seul, sans hébergement).
 À faire : vérifier qu'aucune marque « Yidiano » n'existe déjà (INPI, EUIPO) ; décider s'il faut aussi les extensions
 .app et .fr en redirection.
 
-## Freemium retenu (revu le 20/11/2026)
+## Freemium retenu
 
 Les contenus verrouillés restent visibles avec un cadenas, sans aperçu. La progression est conservée à la fin de
 l'essai ou de l'abonnement ; seul l'accès se referme. Règles dans `src/access/rules.js`.
@@ -36,13 +36,13 @@ l'essai ou de l'abonnement ; seul l'accès se referme. Règles dans `src/access/
 | Module | Gratuit | Yidiano+ |
 | --- | --- | --- |
 | Pinyin et tons | Les 7 leçons et le tableau des sons | Identique |
-| Vocabulaire | HSK 1 (502 mots), 2 tests par jour (comptés au lancement) | HSK 1 à 9, sans limite |
+| Vocabulaire | HSK 1 (502 mots), sans quota de tests | HSK 1 à 9 |
 | Caractères | Les 10 premiers du HSK 1 | HSK 1 à 9 |
 | Clés | Verrouillé | Toutes |
-| Grammaire | Verrouillé | HSK 1 à 4 |
-| Lecture | Verrouillé | Tous les textes |
+| Grammaire | 是, 吗 et 有 / 没有 | HSK 1 à 4 |
+| Lecture | Le dialogue *Se présenter* | Tous les textes |
 | Classificateurs | Verrouillé | Tous les groupes |
-| Aujourd'hui | Verrouillé | Tous les contenus |
+| Aujourd'hui | Séance sur les contenus gratuits, avec *Se présenter* jusqu'à sa réussite | Tous les contenus accessibles |
 | Synchronisation et hors ligne | Inclus | Inclus |
 
 - L'essai Yidiano+ dure 15 jours et demande une carte : il démarre l'abonnement Paddle (statut `trialing`), rien
@@ -52,8 +52,8 @@ l'essai ou de l'abonnement ; seul l'accès se referme. Règles dans `src/access/
 - Le rôle `beta` a l'accès complet pendant la bêta. Au lancement commercial, les bêta-testeurs recevront un mois
   offert, puis deviendront des utilisateurs ordinaires sauf abonnement.
 - Le rôle `user` suit les droits gratuits, l'essai et l'abonnement.
-- Grammaire et lectures sont servies par `/api/content` aux seuls comptes Yidiano+ ; la limite de caractères et de
-  tests de vocabulaire est appliquée dans l'app (compteur synchronisé `vocabTests` du jour, `src/utils/activity.js`).
+- Les fiches et lectures gratuites sont intégrées à l'app (`content/split.js`) ; les autres sont servies par
+  `/api/content` aux seuls comptes Yidiano+. L'accès aux caractères reste filtré dans l'app.
 
 ## Proposé (à décider)
 

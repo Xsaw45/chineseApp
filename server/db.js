@@ -9,7 +9,6 @@ function mergeActivity(a, b) {
   const max = field => Math.max(a[field] || 0, b[field] || 0)
   const merged = { ...a, ...b, practiced: isPracticed(a) || isPracticed(b), learned: max('learned'), seconds: max('seconds') }
   if (a.done || b.done) merged.done = [...new Set([...(a.done || []), ...(b.done || [])])]
-  if ('vocabTests' in a || 'vocabTests' in b) merged.vocabTests = max('vocabTests')
   return merged
 }
 

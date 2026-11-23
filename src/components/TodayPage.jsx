@@ -1,9 +1,10 @@
 import { useRef, useState } from 'react'
 import { GRAMMAR_POINTS } from '../data/grammar.js'
-import { canUseGrammarPoint } from '../access/rules.js'
+import { HANZI } from '../data/hanzi.js'
+import { canUseGrammarPoint, canUseHanzi } from '../access/rules.js'
 import { Check, ChevronRight, Flame } from 'lucide-react'
 import { activityStats, markStepDone } from '../utils/activity.js'
-import { dueLessons, dueReadings, todayPlan } from '../utils/today.js'
+import { dueLessons, todayPlan } from '../utils/today.js'
 import { buildClassifierQuiz } from '../utils/classifierQuiz.js'
 import { buildHanziPractice, buildRadicalQuiz, currentHanziLevel } from '../utils/hanziQuiz.js'
 import { useLang } from '../i18n/useLang.js'
@@ -13,7 +14,7 @@ import { GrammarReview } from './GrammarPage.jsx'
 import { PinyinLesson } from './PinyinLesson.jsx'
 import { RadicalQuiz } from './RadicalsPage.jsx'
 import { ReadingText } from './ReadingText.jsx'
-import { Button, PlusBadge, Screen, SectionLabel, Seal, TopBar } from './ui.jsx'
+import { Button, Screen, SectionLabel, Seal, TopBar } from './ui.jsx'
 import { ICON, ICON_SM } from './uiStyles.js'
 
 const STEP_INFO = {
@@ -27,12 +28,15 @@ const STEP_INFO = {
 }
 
 /** Contenu d'une étape, figé à son lancement (la leçon à revoir ne change pas pendant qu'on la fait). */
-function buildStep(id, progressMap) {
-  if (id === 'hanzi') return buildHanziPractice(progressMap, currentHanziLevel(progressMap))
+function buildStep(id, progressMap, hasPlus) {
+  if (id === 'hanzi') {
+    return hasPlus
+      ? buildHanziPractice(progressMap, currentHanziLevel(progressMap))
+      : buildHanziPractice(progressMap, 1, HANZI.filter(ch => canUseHanzi(ch, false)))
+  }
   if (id === 'radicals') return buildRadicalQuiz(progressMap)
   if (id === 'classifiers') return buildClassifierQuiz(progressMap)
   if (id === 'pinyin') return dueLessons(progressMap)[0]
-  if (id === 'reading') return dueReadings(progressMap)[0]
   return null
 }
 
@@ -87,21 +91,22 @@ function Streak({ stats }) {
  * Chaque étape ouvre le test habituel de son module et revient ici ; elle est finie quand on l'a faite aujourd'hui
  * et qu'il ne reste rien à réviser.
  */
-export function TodayPage({ progressMap, applyUpdates, onBack, onStartVocab }) {
-  const { t } = useLang()
+export function TodayPage({ hasPlus, progressMap, applyUpdates, onBack, onStartVocab }) {
+  const { t, l } = useLang()
   const [active, setActive] = useState(null) // { id, run, content }
   const touched = useRef(false) // l'étape en cours a enregistré au moins une réponse
 
-  const plan = todayPlan(progressMap)
-  const next = plan.find(s => !s.done)
+  const plan = todayPlan(progressMap, hasPlus)
+  const intro = plan.find(step => step.reading && !step.due)
+  const next = intro ?? plan.find(step => !step.done)
 
-  function launch(id) {
-    if (id === 'vocab') {
+  function launch(step) {
+    if (step.id === 'vocab') {
       onStartVocab()
       return
     }
     touched.current = false
-    setActive({ id, run: 1, content: buildStep(id, progressMap) })
+    setActive({ id: step.id, run: 1, content: step.reading ?? buildStep(step.id, progressMap, hasPlus) })
   }
 
   const stepApply = updates => {
@@ -112,7 +117,7 @@ export function TodayPage({ progressMap, applyUpdates, onBack, onStartVocab }) {
     if (touched.current) applyUpdates([markStepDone(progressMap, active.id)])
     setActive(null)
   }
-  const restart = () => setActive(a => ({ ...a, run: a.run + 1, content: buildStep(a.id, progressMap) }))
+  const restart = () => setActive(a => ({ ...a, run: a.run + 1, content: buildStep(a.id, progressMap, hasPlus) }))
 
   if (active) {
     const common = { progressMap, applyUpdates: stepApply, onExit: exit, exitLabel: t('today.back') }
@@ -120,7 +125,7 @@ export function TodayPage({ progressMap, applyUpdates, onBack, onStartVocab }) {
     if (active.id === 'hanzi') return <CharacterPractice key={key} {...common} items={active.content} onRestart={restart} />
     if (active.id === 'radicals') return <RadicalQuiz key={key} {...common} questions={active.content} onRestart={restart} />
     if (active.id === 'classifiers') return <ClassifierQuiz key={key} {...common} questions={active.content} onRestart={restart} />
-    if (active.id === 'grammar') return <GrammarReview key={key} {...common} points={GRAMMAR_POINTS.filter(point => canUseGrammarPoint(point, true))} />
+    if (active.id === 'grammar') return <GrammarReview key={key} {...common} points={GRAMMAR_POINTS.filter(point => canUseGrammarPoint(point, hasPlus))} />
     if (active.id === 'reading') return <ReadingText key={key} {...common} reading={active.content} backLabel={t('today.title')} />
     if (active.id === 'pinyin') {
       return <PinyinLesson key={key} {...common} lesson={active.content} hasNext={false} onNextLesson={exit} backLabel={t('today.title')} />
@@ -140,14 +145,16 @@ export function TodayPage({ progressMap, applyUpdates, onBack, onStartVocab }) {
         <ol className="divide-y divide-line overflow-hidden rounded-2xl border border-line bg-card">
           {plan.map(step => {
             const info = STEP_INFO[step.id]
-            const subtitle = step.due > 0 ? t('today.due', { n: step.due }) : step.done ? t('today.stepDone') : t(info.fresh)
+            const subtitle = step.due > 0 ? t('today.due', { n: step.due })
+              : step.done ? t('today.stepDone')
+                : step.reading ? l(step.reading.title) : t(info.fresh)
             const clickable = !step.done || info.fresh
             return (
               <li key={step.id}>
                 <button
                   type="button"
                   disabled={!clickable}
-                  onClick={() => launch(step.id)}
+                  onClick={() => launch(step)}
                   className="flex w-full items-center gap-4 px-4 py-4 text-left transition-colors duration-150 ease-out hover:bg-raised disabled:hover:bg-transparent"
                 >
                   <Seal className={step.done ? 'opacity-40' : ''}>{info.seal}</Seal>
@@ -164,7 +171,7 @@ export function TodayPage({ progressMap, applyUpdates, onBack, onStartVocab }) {
 
         <div className="mt-auto pt-8">
           {next ? (
-            <Button onClick={() => launch(next.id)}>{t(doneCount > 0 ? 'today.continue' : 'today.start')}</Button>
+            <Button onClick={() => launch(next)}>{t(doneCount > 0 ? 'today.continue' : 'today.start')}</Button>
           ) : (
             <>
               <p className="mb-4 text-center text-[15px] text-fg-2">{t('today.allDone')}</p>
@@ -177,29 +184,29 @@ export function TodayPage({ progressMap, applyUpdates, onBack, onStartVocab }) {
   )
 }
 
-/** Carte de l'accueil : où en est la séance du jour, et la série de jours ; locked : formule gratuite. */
-export function TodayCard({ locked, progressMap, onOpen }) {
+/** Carte de l'accueil : où en est la séance du jour, et la série de jours. */
+export function TodayCard({ hasPlus, progressMap, onOpen }) {
   const { t } = useLang()
   const { streak } = activityStats(progressMap)
-  const left = locked ? 0 : todayPlan(progressMap).filter(s => !s.done).length
+  const left = todayPlan(progressMap, hasPlus).filter(s => !s.done).length
   return (
     <button
       type="button"
       onClick={onOpen}
-      className={`w-full rounded-2xl border p-5 text-left transition-colors duration-150 ease-out hover:bg-raised active:bg-raised ${locked ? 'border-line bg-page' : 'border-seal/40 bg-card'}`}
+      className="w-full rounded-2xl border border-seal/40 bg-card p-5 text-left transition-colors duration-150 hover:bg-raised active:bg-raised"
     >
       <div className="flex items-center gap-3">
         <Seal>今</Seal>
-        <span className={`flex-1 text-lg font-medium ${locked ? 'text-fg-2' : 'text-fg'}`}>{t('today.title')}</span>
-        {!locked && streak > 0 && (
+        <span className="flex-1 text-lg font-medium text-fg">{t('today.title')}</span>
+        {streak > 0 && (
           <span className="inline-flex items-center gap-1 text-sm tabular-nums text-fg-2">
             <Flame {...ICON_SM} className="text-accent" />{streak}
           </span>
         )}
-        {locked ? <PlusBadge /> : <ChevronRight {...ICON} className="text-fg-3" />}
+        <ChevronRight {...ICON} className="text-fg-3" />
       </div>
       <p className="mt-3 text-[15px] leading-snug text-fg-2">
-        {locked ? t('today.lockedDesc') : left === 0 ? t('today.cardDone') : left === 1 ? t('today.cardOne') : t('today.cardLeft', { n: left })}
+        {left === 0 ? t('today.cardDone') : left === 1 ? t('today.cardOne') : t('today.cardLeft', { n: left })}
       </p>
     </button>
   )

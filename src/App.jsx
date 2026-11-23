@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useAccess } from './access/context.js'
-import { canOpenModule, FREE_VOCAB_TESTS_PER_DAY } from './access/rules.js'
+import { canOpenModule } from './access/rules.js'
 import { capture } from './analytics.js'
 import { ConsentBanner } from './components/ConsentBanner.jsx'
-import { withActivity, markStepDone, addPracticeTime, countVocabTest, vocabTestsToday } from './utils/activity.js'
+import { withActivity, markStepDone, addPracticeTime } from './utils/activity.js'
 import { PLACEMENT_KEY } from './utils/levelTest.js'
 import { VocabLevelTest } from './components/VocabLevelTest.jsx'
 import { LanguageChoice } from './components/LanguageChoice.jsx'
@@ -93,19 +93,8 @@ export default function App() {
   const practicing = !loading && !accessLoading && (state !== QUIZ_STATES.IDLE || !['home', 'settings', 'plus', 'admin'].includes(screen))
   usePracticeTime(practicing, seconds => saveUpdates([addPracticeTime(latestMap(), seconds)]))
 
-  // Formule gratuite : FREE_VOCAB_TESTS_PER_DAY tests de vocabulaire par jour, comptés dès leur lancement ; au-delà,
-  // l'écran Yidiano+ s'ouvre. null : pas de limite.
-  const vocabTestsLeft = hasPlus ? null : Math.max(0, FREE_VOCAB_TESTS_PER_DAY - vocabTestsToday(progressMap))
-  const startVocabQuiz = () => {
-    if (!hasPlus && vocabTestsToday(latestMap()) >= FREE_VOCAB_TESTS_PER_DAY) {
-      capture('free_limit_reached', { limit: 'vocab_tests' })
-      return openPlus('hsk')
-    }
-    if (startQuiz(accessibleLevels) && !hasPlus) saveUpdates([countVocabTest(latestMap())])
-  }
-
   const home = () => setScreen('home')
-  // Module Yidiano+ sans l'accès (fin d'abonnement, aperçu gratuit de l'admin) : retour à l'accueil.
+  // Module réservé à Yidiano+ sans l'accès (fin d'abonnement, aperçu gratuit de l'admin) : retour à l'accueil.
   const view = canOpenModule(screen, hasPlus) ? screen : 'home'
   // Mesure d'audience : écrans ouverts (l'app ne change pas d'adresse, donc pas de pages vues après la première).
   useEffect(() => {
@@ -126,7 +115,7 @@ export default function App() {
         results={results}
         onRestart={() => {
           resetQuiz()
-          setTimeout(startVocabQuiz, 0)
+          setTimeout(() => startQuiz(accessibleLevels), 0)
         }}
         onHome={() => {
           if (screen === 'today') applyUpdates([markStepDone(progressMap, 'vocab')])
@@ -196,7 +185,7 @@ export default function App() {
   } else if (view === 'admin') {
     content = <AdminPage onBack={() => setScreen('settings')} />
   } else if (view === 'today') {
-    content = <TodayPage progressMap={progressMap} applyUpdates={applyUpdates} onBack={home} onStartVocab={startVocabQuiz} />
+    content = <TodayPage key={hasPlus} hasPlus={hasPlus} progressMap={progressMap} applyUpdates={applyUpdates} onBack={home} onStartVocab={() => startQuiz(accessibleLevels)} />
   } else if (view === 'hsk') {
     content = (
       <Dashboard
@@ -206,10 +195,9 @@ export default function App() {
         unlockedLevels={unlockedLevels}
         progressMap={progressMap}
         placementDone={placementDone}
-        testsLeft={vocabTestsLeft}
         onStartPlacement={() => setLevelTest({ mode: 'placement' })}
         onStartUnlockTest={level => setLevelTest({ mode: 'unlock', level })}
-        onStartQuiz={startVocabQuiz}
+        onStartQuiz={() => startQuiz(accessibleLevels)}
         onOpenVocabulary={() => setScreen('vocabulary')}
         onBack={home}
       />
@@ -221,12 +209,12 @@ export default function App() {
         progressMap={progressMap}
         showPlacement={newLearner}
         onStartPlacement={() => setLevelTest({ mode: 'placement' })}
-        onOpenToday={() => openModule('today')}
+        onOpenToday={() => setScreen('today')}
         onOpenPinyin={() => setScreen('pinyin')}
         onOpenVocabulary={() => setScreen('hsk')}
         onOpenCharacters={() => setScreen('hanzi')}
-        onOpenGrammar={() => openModule('grammar')}
-        onOpenReading={() => openModule('reading')}
+        onOpenGrammar={() => setScreen('grammar')}
+        onOpenReading={() => setScreen('reading')}
         onOpenClassifiers={() => openModule('classifiers')}
         onOpenSettings={() => setScreen('settings')}
         onOpenReferral={() => openReferral('home')}

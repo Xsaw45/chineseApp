@@ -105,7 +105,7 @@ export function ModulesHome({ hasPlus, levelStats, progressMap, showPlacement, o
           <p className="mt-1 text-[17px] text-fg-2">{t('home.subtitle')}</p>
         </header>
 
-        <TodayCard locked={locked('today')} progressMap={progressMap} onOpen={onOpenToday} />
+        <TodayCard hasPlus={hasPlus} progressMap={progressMap} onOpen={onOpenToday} />
         <ReferralCard onOpen={onOpenReferral} />
         {showPlacement && <PlacementInvite onStart={onStartPlacement} className="mt-3" />}
 
@@ -113,8 +113,8 @@ export function ModulesHome({ hasPlus, levelStats, progressMap, showPlacement, o
           <ModuleCard id="pinyin" seal="拼" chinese="拼音" known={lessonsPassed} total={PINYIN_LESSONS.length} onOpen={onOpenPinyin} />
           <ModuleCard id="vocab" seal="词" chinese="词汇" known={wordsKnown} total={wordsTotal} onOpen={onOpenVocabulary} />
           <ModuleCard id="hanzi" seal="字" chinese="汉字" known={charsKnown} total={availableHanzi.length} onOpen={onOpenCharacters} />
-          <ModuleCard id="grammar" seal="语" chinese="语法" known={pointsPassed} total={availableGrammar.length} locked={locked('grammar')} onOpen={onOpenGrammar} />
-          <ModuleCard id="reading" seal="读" chinese="阅读" known={textsPassed} total={availableReadings.length} locked={locked('reading')} onOpen={onOpenReading} />
+          <ModuleCard id="grammar" seal="语" chinese="语法" known={pointsPassed} total={availableGrammar.length} onOpen={onOpenGrammar} />
+          <ModuleCard id="reading" seal="读" chinese="阅读" known={textsPassed} total={availableReadings.length} onOpen={onOpenReading} />
           <ModuleCard id="classifiers" seal="量" chinese="量词" known={classifiersKnown} total={CLASSIFIERS.length} locked={locked('classifiers')} onOpen={onOpenClassifiers} />
         </div>
       </div>

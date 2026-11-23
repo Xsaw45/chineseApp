@@ -106,21 +106,22 @@ export function GrammarPage({ hasPlus, onUpgrade, progressMap, applyUpdates, onB
   }
 
   if (typeof view === 'number' && canUseGrammarPoint(GRAMMAR_POINTS[view], hasPlus)) {
+    const next = hasPlus ? view + 1 : GRAMMAR_POINTS.findIndex((point, index) => index > view && canUseGrammarPoint(point, false))
     return (
       <GrammarPoint
         key={view}
         point={GRAMMAR_POINTS[view]}
-        hasNext={view + 1 < GRAMMAR_POINTS.length && canUseGrammarPoint(GRAMMAR_POINTS[view + 1], hasPlus)}
+        hasNext={next >= 0 && next < GRAMMAR_POINTS.length && canUseGrammarPoint(GRAMMAR_POINTS[next], hasPlus)}
         progressMap={progressMap}
         applyUpdates={applyUpdates}
         onExit={() => setView(null)}
-        onNextPoint={() => setView(view + 1)}
+        onNextPoint={() => setView(next)}
       />
     )
   }
 
   if (view === 'review') return <GrammarReview points={availablePoints} progressMap={progressMap} applyUpdates={applyUpdates} onExit={() => setView(null)} />
-  if (view?.levelTest) {
+  if (hasPlus && view?.levelTest) {
     return <GrammarQuiz key={view.levelTest} questions={view.questions} onExit={() => setView(null)} onFinish={finishLevelTest} />
   }
   if (view?.total !== undefined) return <LevelTestResult passed={view.passed} total={view.total} onExit={() => setView(null)} />
@@ -148,7 +149,7 @@ export function GrammarPage({ hasPlus, onUpgrade, progressMap, applyUpdates, onB
               {GRAMMAR_POINTS.map((point, i) => {
                 if (point.level !== level) return null
                 const paidLocked = !canUseGrammarPoint(point, hasPlus)
-                const unlocked = !paidLocked && isPointUnlocked(progressMap, i)
+                const unlocked = !paidLocked && (!hasPlus || isPointUnlocked(progressMap, i))
                 return (
                   <li key={point.id}>
                     <button
@@ -168,7 +169,7 @@ export function GrammarPage({ hasPlus, onUpgrade, progressMap, applyUpdates, onB
                 )
               })}
             </ol>
-            {canUseGrammarPoint(GRAMMAR_POINTS.find(p => p.level === level), hasPlus) && GRAMMAR_POINTS.some((p, i) => p.level === level && !isLessonPassed(progresses[i])) && (
+            {hasPlus && canUseGrammarPoint(GRAMMAR_POINTS.find(p => p.level === level), hasPlus) && GRAMMAR_POINTS.some((p, i) => p.level === level && !isLessonPassed(progresses[i])) && (
               <>
                 <Button
                   variant="secondary"

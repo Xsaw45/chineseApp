@@ -215,9 +215,10 @@ test('contenu Yidiano+ : refusé à la formule gratuite, servi pendant l abonnem
   assert.equal(res.statusCode, 200)
   const { version, grammar, readings } = res.json()
   assert.match(version, /^[0-9a-f]{16}$/)
-  // Grammaire et lectures entièrement Yidiano+ : HSK 1 et premiers dialogues compris.
   assert.ok(grammar.some(point => point.level === 1) && grammar.every(point => point.explanation))
-  assert.ok(readings.some(reading => reading.id === 'jieshao') && readings.every(reading => reading.lines?.length))
+  assert.ok(grammar.every(point => !['shi', 'ma', 'you'].includes(point.id)))
+  assert.ok(readings.some(reading => reading.id === 'fanguan') && readings.every(reading => reading.lines?.length))
+  assert.ok(readings.every(reading => reading.id !== 'jieshao'))
 })
 
 test('suppression du compte : confirmation par l adresse, puis progression et sessions effacées', async () => {

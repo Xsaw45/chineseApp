@@ -46,6 +46,26 @@ Objectif à terme : vendre l'application de chinois seule (sans l'italien), en f
    3 lectures HSK 4 et son des particules au ton neutre présenté dans un mot (的 dans 我的, 了 dans 好了, 吗 dans
    你好吗…). Reste, en option : phrases d'exemple pour les mots du HSK 1 à 3.
 
+## Parcours gratuit et acquisition
+
+- [x] **Lot 1 — Gratuit au quotidien.** Aujourd'hui, trois fiches (是, 吗, 有) et le dialogue *Se présenter* ;
+  vocabulaire HSK 1 sans quota. En fin d'essai, continuer sur les révisions gratuites sans perdre sa progression.
+- [ ] **Lot 2 — Parcours débutant.** Après la langue, proposer « Je débute » / « J'ai déjà des bases ». Cinq
+  séances courtes enchaînables : se présenter, répondre à une question oui/non, parler de son origine, commander
+  et demander le prix. Réutiliser *Se présenter* et *Au restaurant*, cibler 25 caractères avec tracé facultatif,
+  reprendre le parcours depuis Aujourd'hui sur chaque appareil. Après le restaurant : extrait de *Demander son chemin*,
+  puis choix entre le dialogue complet avec Yidiano+ et les révisions gratuites.
+- [ ] **Lot 3 — Reprendre à son niveau.** Test de placement facultatif ou choix direct. HSK 1 : accès direct
+  aux dialogues débutants ; HSK 2 : *Acheter un vêtement* ; HSK 3 : *À l'hôtel* ; HSK 4 : *Un entretien
+  d'embauche* ; HSK 5–6 et 7–9 : vocabulaire et écoute, sans promettre de nouvelles lectures. Environ 15 mots
+  fixes par séance, révisables gratuitement sans ouvrir tout le niveau. Séparer l'estimation du niveau de la
+  planification des révisions pour ne pas programmer de mots verrouillés.
+- [ ] **Lot 4 — Démo et distribution.** CTA « Écouter et jouer » : quiz de tons et tracé public avant de proposer
+  le compte. Deux pages utiles (quatre tons avec audio, premier dialogue avec pinyin), puis des clips tirés de
+  la démo pour des communautés et profs de mandarin francophones. Suivre dans PostHog, avec consentement,
+  la première séance terminée, le retour à J7 et l'essai après une proposition de suite, par profil et source.
+  Ne pas changer le prix ni l'essai pendant ce test ; attendre un signal de rétention avant la pub payante.
+
 ## Secondaire
 
 - Grammaire HSK 5 et plus (fait jusqu'au HSK 4 : 把, 被, compléments de résultat, de direction et de possibilité,
@@ -58,8 +78,8 @@ Objectif à terme : vendre l'application de chinois seule (sans l'italien), en f
 ## Bêta et ouverture (bêta décidée le 16/11/2026, inscriptions ouvertes le 20/11/2026)
 
 Inscriptions ouvertes à tous depuis le 20/11/2026 : https://yidiano.com, connexion par e-mail, rôles `admin` / `beta` /
-`user`, version gratuite (pinyin, vocabulaire HSK 1 à 2 tests par jour, 10 caractères) et essai Yidiano+ de 15 jours
-avec carte (voir [COMMERCIALISATION.md](COMMERCIALISATION.md)). Les bêta-testeurs gardent le rôle `beta` en parallèle.
+`user`, version gratuite et essai Yidiano+ de 15 jours avec carte (voir [COMMERCIALISATION.md](COMMERCIALISATION.md)).
+Les bêta-testeurs gardent le rôle `beta` en parallèle.
 
 Pendant la bêta :
 - Envoyer aux testeurs et à Elisa le message de changement d'adresse (yidiano.com, reconnexion par e-mail, icône à
@@ -87,8 +107,8 @@ micro-entreprise et paiement Paddle décidés. Nom, domaine et détails : voir [
   l'abonnement à chaque remboursement.
 - **Bêta-testeurs** : gardent le rôle `beta` (accès complet) sans date de fin ; Erwan décide quand arrêter (alors :
   fin d'accès Yidiano+ à date + 1 mois dans la page Admin, puis rôle `user`).
-- **Contenu payant protégé** : grammaire et lectures servies par `/api/content` aux seuls comptes Yidiano+, absentes
-  du code de l'app. Vocabulaire et caractères restent dans l'app (verrouillés côté client).
+- **Contenu payant protégé** : fiches et lectures payantes absentes du code de l'app, servies par `/api/content`
+  aux seuls comptes Yidiano+. Vocabulaire et caractères restent dans l'app (verrouillés côté client).
 - **Inscriptions ouvertes** : fait le 20/11/2026 (`AUTH_ALLOWED_EMAILS` vide), avec la limite d'envois par IP. Les
   bêta-testeurs gardent leur rôle `beta` (enregistré dans la base, pas dans la liste).
 - **Comptes** : connexion par e-mail et avec Google (20/11/2026) faites ; reste Apple.
@@ -125,7 +145,7 @@ micro-entreprise et paiement Paddle décidés. Nom, domaine et détails : voir [
   neutres contre les bloqueurs ; ancien chemin `/ingest` gardé dans Caddy pour les versions en cache, à retirer).
   Propriétés de chaque événement : `surface` (landing / login / app), `installed` (app ouverte depuis l'écran
   d'accueil), et celles de PostHog (`$os`, `$device_type`, `$browser`). Événements : pages vues, `screen_viewed`,
-  `signed_up` (premier lancement), `plus_viewed`, `free_limit_reached`, `checkout_opened`, `checkout_completed`
+  `signed_up` (premier lancement), `plus_viewed`, `checkout_opened`, `checkout_completed`
   (`plan`, `trial`) ; page de connexion : `login_code_requested`, `login_code_failed` (`step`, `error`),
   `login_google_started`, `login_google_failed`, `login_succeeded` (`method` code / link). Tableau de bord PostHog
   « Yidiano — acquisition et abonnements » (entonnoirs d'achat et de connexion, appareils, rétention). La page de

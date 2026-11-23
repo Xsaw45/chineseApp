@@ -1,6 +1,6 @@
 // Lecture : petits textes et dialogues du quotidien, gradués par niveau HSK (vocabulaire du niveau visé pour l’essentiel).
-// Données pures, sans import. Contenu rédigé Yidiano+ : seul le résumé des textes est dans le code de l'app ; le
-// contenu est servi par le serveur aux comptes Yidiano+ (content/split.js, /api/content).
+// Données pures, sans import. Les lectures gratuites sont intégrées à l'app ; les autres sont servies aux
+// comptes Yidiano+ (content/split.js, /api/content).
 // Textes affichés : { fr, en } (langue de l'utilisateur).
 //
 // Texte : { id, level, kind: 'dialogue' | 'text', title, zh (titre chinois), speakers?, voice?, lines, questions }

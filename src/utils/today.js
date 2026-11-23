@@ -1,50 +1,61 @@
 import { PINYIN_LESSONS } from '../data/pinyinLessons.js'
 import { GRAMMAR_POINTS } from '../data/grammar.js'
 import { READINGS } from '../data/reading.js'
-import { canUseGrammarPoint, canUseReading } from '../access/rules.js'
+import { canOpenModule, canUseGrammarPoint, canUseReading, FREE_HANZI } from '../access/rules.js'
 import { getLessonProgress } from './pinyinQuiz.js'
 import { getPointProgress } from './grammarQuiz.js'
 import { getReadingProgress } from './readingQuiz.js'
+import { isLessonPassed } from './lessonProgress.js'
 import { isDueForReview } from './spacedrep.js'
 import { doneToday } from './activity.js'
 
-// Séance « Aujourd'hui » (Yidiano+) : les révisions arrivées à échéance dans chaque module, dans l'ordre
-// d'apprentissage, et toujours le vocabulaire (révisions puis mots nouveaux). Chaque étape lance le test habituel de
-// son module.
+// Séance « Aujourd'hui » : révisions dues parmi les contenus accessibles, puis vocabulaire et premier dialogue.
 
 const STEPS = ['pinyin', 'vocab', 'hanzi', 'radicals', 'grammar', 'reading', 'classifiers']
 
 // Modules à éléments (un enregistrement par mot, caractère…) : reconnus au préfixe de l'enregistrement.
 const PREFIXES = { vocab: 'hsk', hanzi: 'hz_', radicals: 'rad_', classifiers: 'cl_' }
+const INTRO_READING = READINGS.find(reading => reading.id === 'jieshao')
+
+function canReviewRecord(module, key, hasPlus) {
+  if (hasPlus) return true
+  if (module === 'vocab') return key.startsWith('hsk1_')
+  if (module === 'hanzi') return FREE_HANZI.has(key.slice(3))
+  return false
+}
 
 /** Leçons, points ou textes à revoir aujourd'hui, dans l'ordre du module. */
 export const dueLessons = progressMap => PINYIN_LESSONS.filter(x => isDueForReview(getLessonProgress(progressMap, x)))
-// Points et textes dont le contenu Yidiano+ est déjà sur l'appareil (src/content/plus.js).
-export const duePoints = progressMap => GRAMMAR_POINTS
-  .filter(point => canUseGrammarPoint(point, true) && isDueForReview(getPointProgress(progressMap, point)))
-export const dueReadings = progressMap => READINGS
-  .filter(reading => canUseReading(reading, true) && isDueForReview(getReadingProgress(progressMap, reading)))
+const duePoints = (progressMap, hasPlus) => GRAMMAR_POINTS
+  .filter(point => canUseGrammarPoint(point, hasPlus) && isDueForReview(getPointProgress(progressMap, point)))
+const dueReadings = (progressMap, hasPlus) => READINGS
+  .filter(reading => canUseReading(reading, hasPlus) && isDueForReview(getReadingProgress(progressMap, reading)))
 
-/**
- * Étapes du jour : [{ id, due, done }]. due : éléments à réviser ; done : étape finie aujourd'hui et plus rien à
- * réviser. Une étape apparaît s'il y a des révisions ou si elle a été faite aujourd'hui ; le vocabulaire apparaît
- * toujours (mots nouveaux), les caractères dès qu'on a commencé à en écrire.
- */
-export function todayPlan(progressMap) {
+/** Étapes à lancer ou déjà faites aujourd'hui ; une lecture nouvelle ne compte pas comme révision due. */
+export function todayPlan(progressMap, hasPlus) {
+  const readings = dueReadings(progressMap, hasPlus)
+  const intro = !hasPlus && canUseReading(INTRO_READING, false)
+    && !isLessonPassed(getReadingProgress(progressMap, INTRO_READING))
+    ? INTRO_READING : null
   const due = {
     pinyin: dueLessons(progressMap).length,
-    grammar: duePoints(progressMap).length,
-    reading: dueReadings(progressMap).length,
+    grammar: duePoints(progressMap, hasPlus).length,
+    reading: readings.length,
   }
   const started = new Set()
   for (const [key, progress] of progressMap || []) {
     const module = Object.keys(PREFIXES).find(m => key.startsWith(PREFIXES[m]))
-    if (!module) continue
+    if (!module || !canReviewRecord(module, key, hasPlus)) continue
     started.add(module)
     if (isDueForReview(progress)) due[module] = (due[module] || 0) + 1
   }
   const done = doneToday(progressMap)
   return STEPS
-    .filter(id => due[id] > 0 || done.has(id) || id === 'vocab' || (id === 'hanzi' && started.has('hanzi')))
-    .map(id => ({ id, due: due[id] || 0, done: done.has(id) && !due[id] }))
+    .filter(id => canOpenModule(id, hasPlus)
+      && (due[id] > 0 || done.has(id) || id === 'vocab'
+        || (id === 'hanzi' && started.has('hanzi')) || (id === 'reading' && intro)))
+    .map(id => {
+      const reading = id === 'reading' ? readings[0] ?? intro : null
+      return { id, due: due[id] || 0, done: done.has(id) && !due[id] && !reading, reading }
+    })
 }
