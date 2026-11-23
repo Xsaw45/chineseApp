@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react'
-import { buildQuiz } from '../utils/quiz.js'
+import { buildQuestion, buildQuiz } from '../utils/quiz.js'
 import { validateAnswer } from '../utils/validate.js'
 import { wordSenses } from '../data/index.js'
 import { applySuccess, applyFailure } from '../utils/spacedrep.js'
@@ -21,9 +21,8 @@ export function useQuiz(progressMap, getProgress, applyUpdates, lang) {
   const [lastAnswer, setLastAnswer] = useState(null) // QCM : clé de l'option choisie
   const [results, setResults] = useState([]) // { word, type, correct }
 
-  const startQuiz = useCallback((unlockedLevels) => {
-    unlockAudio() // dans le geste de l'utilisateur : les questions d'écoute peuvent jouer leur son toutes seules
-    const qs = buildQuiz(progressMap, unlockedLevels)
+  const start = useCallback(qs => {
+    unlockAudio() // dans le geste de l'utilisateur, avant la première question d'écoute
     if (qs.length === 0) return false
     setQuestions(qs)
     setCurrentIndex(0)
@@ -32,7 +31,13 @@ export function useQuiz(progressMap, getProgress, applyUpdates, lang) {
     setLastAnswer(null)
     setState(QUIZ_STATES.QUESTION)
     return true
-  }, [progressMap])
+  }, [])
+
+  const startQuiz = useCallback((levels, extraWords) => start(buildQuiz(progressMap, levels, extraWords)), [start, progressMap])
+  const startWords = useCallback(words => start(words.map((word, index) => {
+    const type = ['listen-choice', 'meaning-choice', 'def-to-char'][index % 3]
+    return buildQuestion(word, getProgress(word.id, word.level), type)
+  })), [start, getProgress])
 
   /** input : texte tapé, ou clé de l'option choisie (QCM). */
   const submitAnswer = useCallback((input) => {
@@ -85,6 +90,7 @@ export function useQuiz(progressMap, getProgress, applyUpdates, lang) {
     lastAnswer,
     results,
     startQuiz,
+    startWords,
     submitAnswer,
     nextQuestion,
     resetQuiz,

@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Écouter et jouer : ta première minute de chinois · Yidiano</title>
+  <meta name="description" content="Compare les quatre tons du mandarin, reconnais le son mystère et trace ton premier caractère chinois. Démo gratuite, sans compte.">
+  <link rel="canonical" href="https://yidiano.com/demo/">
+  <link rel="icon" type="image/png" href="/icons/icon-192.png">
+  <meta name="theme-color" content="#f7f4ee">
+  <script type="module" src="/src/demo/main.js"></script>
+</head>
+<body>
+  <header class="public-header">
+    <div class="public-bar">
+      <a class="public-brand" href="/" aria-label="Yidiano, accueil" data-campaign><span class="public-seal" aria-hidden="true">点</span>Yidiano</a>
+      <nav aria-label="Compte"><a href="/login/" data-campaign>Se connecter</a></nav>
+    </div>
+  </header>
+  <main class="public-main">
+    <div class="public-hero">
+      <p class="eyebrow">Démo gratuite · Sans compte</p>
+      <h1>Ton premier pas en chinois</h1>
+      <p class="intro muted">Reconnais un ton à l’oreille, puis trace ton premier caractère. Tu peux essayer sans rien installer.</p>
+    </div>
+
+    <section class="exercise" aria-labelledby="tone-heading">
+      <p class="eyebrow">01 / Écouter</p>
+      <h2 id="tone-heading">Une syllabe, quatre tons</h2>
+      <p class="muted">Écoute les quatre versions de « ma ». Ce qui change, c’est le mouvement de la voix.</p>
+      <div class="tones" role="group" aria-label="Exemples à écouter">
+        <button class="control" type="button" data-tone-example="1" aria-label="Écouter le ton 1 : haut et plat" disabled><span class="syllable" lang="zh-Latn">mā</span><span aria-hidden="true">→</span></button>
+        <button class="control" type="button" data-tone-example="2" aria-label="Écouter le ton 2 : montant" disabled><span class="syllable" lang="zh-Latn">má</span><span aria-hidden="true">↗</span></button>
+        <button class="control" type="button" data-tone-example="3" aria-label="Écouter le ton 3 : bas" disabled><span class="syllable" lang="zh-Latn">mǎ</span><span aria-hidden="true">↘↗</span></button>
+        <button class="control" type="button" data-tone-example="4" aria-label="Écouter le ton 4 : descendant" disabled><span class="syllable" lang="zh-Latn">mà</span><span aria-hidden="true">↘</span></button>
+      </div>
+      <div class="tone-quiz">
+        <h3>Quel est le ton mystère ?</h3>
+        <div class="actions"><button class="control primary" type="button" data-tone-question disabled><span aria-hidden="true">▶</span> Écouter le son mystère</button></div>
+        <div class="tones quiz-answers" role="group" aria-label="Choisir un ton">
+          <button class="control" type="button" data-tone-answer="1" disabled>1 · Plat</button>
+          <button class="control" type="button" data-tone-answer="2" disabled>2 · Montant</button>
+          <button class="control" type="button" data-tone-answer="3" disabled>3 · Bas</button>
+          <button class="control" type="button" data-tone-answer="4" disabled>4 · Descendant</button>
+        </div>
+        <p class="feedback" data-tone-feedback role="status"></p>
+        <div class="actions"><a class="control" href="#tracer" data-go-trace hidden>Passer au tracé <span aria-hidden="true">↓</span></a></div>
+      </div>
+      <noscript><p>Active JavaScript pour jouer, ou lis le <a href="/tons-chinois/">guide des quatre tons</a>.</p></noscript>
+    </section>
+
+    <section class="exercise" id="tracer" data-trace aria-labelledby="trace-heading" hidden>
+      <p class="eyebrow">02 / Tracer</p>
+      <h2 id="trace-heading" tabindex="-1">Écris <span lang="zh-Hans">人</span>, « personne »</h2>
+      <div class="trace-layout">
+        <div class="trace-board" data-trace-board role="img" aria-label="Case de tracé pour le caractère 人, à utiliser avec le doigt ou la souris" aria-describedby="trace-instructions"></div>
+        <div>
+          <h3 id="trace-instructions">Suis les deux traits au doigt ou à la souris.</h3>
+          <ol class="trace-guide">
+            <li>Pars du haut et descends vers la gauche.</li>
+            <li>Repars du milieu et descends vers la droite.</li>
+          </ol>
+          <div class="actions"><button class="control" type="button" data-trace-guide disabled>Voir le geste</button></div>
+          <p class="feedback" data-trace-feedback role="status"></p>
+        </div>
+      </div>
+      <div class="save-area" data-save-area hidden>
+        <h3>Deux exercices réussis !</h3>
+        <p class="muted">Connecte-toi sur cet appareil pour continuer sans recommencer la démo.</p>
+        <div class="actions"><a class="control primary" href="/login/" data-demo-save data-campaign>Garder ma progression</a></div>
+        <p data-save-error role="alert" hidden>Le navigateur bloque l’enregistrement. Tu peux quand même <a href="/login/" data-campaign>te connecter</a>.</p>
+      </div>
+    </section>
+  </main>
+  <footer class="public-footer">
+    <div class="public-bar">
+      <nav aria-label="Pour continuer">
+        <a href="/tons-chinois/" data-campaign>Les quatre tons</a>
+        <a href="/dialogue-chinois/" data-campaign>Ton premier dialogue</a>
+      </nav>
+      <nav aria-label="Confidentialité et crédits">
+        <a href="/legal/licences.html">Crédits</a>
+        <a href="/legal/confidentialite.html">Confidentialité</a>
+        <button class="text-link" type="button" data-consent-open hidden>Cookies</button>
+      </nav>
+    </div>
+  </footer>
+</body>
+</html>

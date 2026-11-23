@@ -36,13 +36,13 @@ l'essai ou de l'abonnement ; seul l'accès se referme. Règles dans `src/access/
 | Module | Gratuit | Yidiano+ |
 | --- | --- | --- |
 | Pinyin et tons | Les 7 leçons et le tableau des sons | Identique |
-| Vocabulaire | HSK 1 (502 mots), sans quota de tests | HSK 1 à 9 |
-| Caractères | Les 10 premiers du HSK 1 | HSK 1 à 9 |
+| Vocabulaire | HSK 1 (502 mots), sans quota ; sélections de 15 mots par séance de découverte | HSK 1 à 9 |
+| Caractères | Les 25 du parcours débutant et les 10 déjà accessibles | HSK 1 à 9 |
 | Clés | Verrouillé | Toutes |
 | Grammaire | 是, 吗 et 有 / 没有 | HSK 1 à 4 |
-| Lecture | Le dialogue *Se présenter* | Tous les textes |
+| Lecture | *Se présenter*, *Au restaurant*, *Acheter un vêtement*, *À l'hôtel* et *Un entretien d'embauche* | Tous les textes |
 | Classificateurs | Verrouillé | Tous les groupes |
-| Aujourd'hui | Séance sur les contenus gratuits, avec *Se présenter* jusqu'à sa réussite | Tous les contenus accessibles |
+| Aujourd'hui | Révisions sur les contenus gratuits et reprise du parcours | Tous les contenus accessibles |
 | Synchronisation et hors ligne | Inclus | Inclus |
 
 - L'essai Yidiano+ dure 15 jours et demande une carte : il démarre l'abonnement Paddle (statut `trialing`), rien
@@ -54,6 +54,21 @@ l'essai ou de l'abonnement ; seul l'accès se referme. Règles dans `src/access/
 - Le rôle `user` suit les droits gratuits, l'essai et l'abonnement.
 - Les fiches et lectures gratuites sont intégrées à l'app (`content/split.js`) ; les autres sont servies par
   `/api/content` aux seuls comptes Yidiano+. L'accès aux caractères reste filtré dans l'app.
+
+### Lancer l'acquisition francophone
+
+Après déploiement, trois clips de 8 secondes (`node scripts/acquisition-clips.mjs` après build) ;
+publier seulement dans les espaces qui acceptent les ressources externes :
+
+| Clip | Texte de publication | Lien à partager |
+| --- | --- | --- |
+| `01-ton-mystere.mp4` | Tu reconnais le ton sans voir le pinyin ? Écoute et choisis. | `/demo/?utm_source=reels&utm_campaign=parcours_gratuit&utm_content=ton` |
+| `02-tracer-ren.mp4` | Deux traits, un caractère : essaie 人 sans installer d'app. | `/demo/?utm_source=shorts&utm_campaign=parcours_gratuit&utm_content=trace` |
+| `03-premier-dialogue.mp4` | Écoute la phrase, puis affiche la traduction pour vérifier. | `/dialogue-chinois/?utm_source=tiktok&utm_campaign=parcours_gratuit&utm_content=dialogue` |
+
+Pour les profs : « Un exercice gratuit et sans compte sur les quatre tons du mandarin, avec audio et quiz.
+Vous pouvez le donner à vos débutants : https://yidiano.com/tons-chinois/?utm_source=professeurs&utm_campaign=parcours_gratuit ».
+Crédits des enregistrements et du tracé : [licences Yidiano](https://yidiano.com/legal/licences.html).
 
 ## Proposé (à décider)
 

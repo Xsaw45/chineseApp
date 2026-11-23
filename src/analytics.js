@@ -7,10 +7,28 @@
 
 const TOKEN = 'phc_r8KAYtAMRFMC8cBBNzN6nVemRrXRaPfB69GhWKmuMvT3'
 const CONSENT_KEY = 'yidiano.analytics'
+const SOURCE_KEY = 'yidiano.learning-source'
+const CAMPAIGN_SOURCE = /^[a-z0-9][a-z0-9_-]{0,31}$/
 export const CONSENT_EVENT = 'yidiano:analytics-consent'
 
 let surface = null
 let loading = null
+let arrival = 'direct'
+
+function arrivalSource(hint) {
+  const tagged = new URLSearchParams(location.search).get('utm_source')?.toLowerCase()
+  if (tagged && CAMPAIGN_SOURCE.test(tagged)) return tagged
+  if (hint) return hint
+  if (document.referrer) {
+    const host = new URL(document.referrer).hostname
+    if (host && host !== location.hostname) {
+      if (/^(www\.)?google\./.test(host) || /^(www\.)?bing\.com$/.test(host)) return 'search'
+      if (/(^|\.)(instagram\.com|tiktok\.com|youtube\.com|reddit\.com|facebook\.com)$/.test(host)) return host.split('.').at(-2)
+      return 'referral_site'
+    }
+  }
+  return 'direct'
+}
 
 /** 'granted' | 'denied' | null (pas encore demandé). */
 export function consent() {
@@ -36,20 +54,24 @@ function load() {
     // surface : page de présentation, connexion ou app ; installed : app ouverte depuis l'écran d'accueil (PWA).
     // Système, type d'appareil et navigateur ($os, $device_type, $browser) sont ajoutés par PostHog.
     const installed = window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true
-    posthog.register({ surface, installed })
+    const learning_source = localStorage.getItem(SOURCE_KEY) || arrival
+    localStorage.setItem(SOURCE_KEY, learning_source)
+    posthog.register({ surface, installed, learning_source })
     return posthog
   })
   return loading
 }
 
-/** À l'ouverture de la page : surface = 'landing' | 'login' | 'app'. Charge PostHog seulement si consentement donné. */
-export function initAnalytics(name) {
+/** Charge PostHog seulement si le consentement est donné ; le canal n'est mémorisé qu'alors. */
+export function initAnalytics(name, sourceHint) {
   surface = name
+  arrival = arrivalSource(sourceHint)
   if (consent() === 'granted') load()
 }
 
 /** Ce que PostHog a laissé sur l'appareil (persistence localStorage : aucun cookie). */
 function forget() {
+  localStorage.removeItem(SOURCE_KEY)
   for (const key of Object.keys(localStorage)) {
     if (key.startsWith('ph_') || key.startsWith('__ph')) localStorage.removeItem(key)
   }

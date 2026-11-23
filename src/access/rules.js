@@ -1,7 +1,11 @@
 import { charsForLevel } from '../data/hanzi.js'
+import { BEGINNER_SESSIONS } from '../data/beginnerPath.js'
 
 const FREE_HANZI_COUNT = 10
-export const FREE_HANZI = new Set(charsForLevel(1).slice(0, FREE_HANZI_COUNT).map(ch => ch.c))
+export const FREE_HANZI = new Set([
+  ...charsForLevel(1).slice(0, FREE_HANZI_COUNT).map(ch => ch.c),
+  ...BEGINNER_SESSIONS.flatMap(session => [...session.chars]),
+])
 const PLUS_MODULES = new Set(['classifiers', 'radicals'])
 
 // Grammaire et lectures : plus = élément Yidiano+ ; locked = son contenu n'est pas sur l'appareil (src/content/plus.js).

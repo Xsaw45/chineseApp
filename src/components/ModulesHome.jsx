@@ -66,7 +66,7 @@ function ReferralCard({ onOpen }) {
 }
 
 /** showPlacement : nouvel utilisateur, invité au test de niveau. Un module verrouillé ouvre Yidiano+ (App.jsx). */
-export function ModulesHome({ hasPlus, levelStats, progressMap, showPlacement, onStartPlacement, onOpenToday, onOpenPinyin, onOpenVocabulary, onOpenCharacters, onOpenGrammar, onOpenReading, onOpenClassifiers, onOpenSettings, onOpenReferral }) {
+export function ModulesHome({ hasPlus, accessibleLevels, sampleWords, profile, levelStats, progressMap, showPlacement, onStartPlacement, onOpenToday, onOpenPinyin, onOpenVocabulary, onOpenCharacters, onOpenGrammar, onOpenReading, onOpenClassifiers, onOpenSettings, onOpenReferral }) {
   const { t } = useLang()
   const locked = module => !canOpenModule(module, hasPlus)
   const availableLevels = (levelStats || []).filter(stat => canUseVocabLevel(stat.level, hasPlus))
@@ -105,7 +105,7 @@ export function ModulesHome({ hasPlus, levelStats, progressMap, showPlacement, o
           <p className="mt-1 text-[17px] text-fg-2">{t('home.subtitle')}</p>
         </header>
 
-        <TodayCard hasPlus={hasPlus} progressMap={progressMap} onOpen={onOpenToday} />
+        <TodayCard hasPlus={hasPlus} accessibleLevels={accessibleLevels} sampleWords={sampleWords} profile={profile} progressMap={progressMap} onOpen={onOpenToday} />
         <ReferralCard onOpen={onOpenReferral} />
         {showPlacement && <PlacementInvite onStart={onStartPlacement} className="mt-3" />}
 

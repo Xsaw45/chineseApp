@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Dialogue en chinois débutant : se présenter, avec audio et pinyin · Yidiano</title>
+  <meta name="description" content="Écoute un dialogue de mandarin niveau HSK 1 : se présenter, demander le nom et le pays, parler de ses études. Avec audio, pinyin et traduction française.">
+  <link rel="canonical" href="https://yidiano.com/dialogue-chinois/">
+  <link rel="icon" type="image/png" href="/icons/icon-192.png">
+  <meta name="theme-color" content="#f7f4ee">
+  <script type="module" src="/src/demo/dialogue.js"></script>
+</head>
+<body>
+  <header class="public-header">
+    <div class="public-bar">
+      <a class="public-brand" href="/" aria-label="Yidiano, accueil" data-campaign><span class="public-seal" aria-hidden="true">点</span>Yidiano</a>
+      <nav aria-label="Navigation principale"><a href="/demo/" data-campaign>Écouter et jouer</a></nav>
+    </div>
+  </header>
+  <main class="public-main">
+    <div class="public-hero">
+      <p class="eyebrow">Mandarin · Dialogue HSK 1</p>
+      <h1>Ton premier dialogue en chinois : se présenter</h1>
+      <p class="intro muted">Wang Ming et David font connaissance. Écoute leurs voix, puis reprends leurs phrases pour dire ton nom, ton pays et ce que tu fais.</p>
+    </div>
+
+    <section class="exercise" aria-labelledby="listen-heading">
+      <p class="eyebrow" lang="zh-Hans">自我介绍</p>
+      <h2 id="listen-heading">Se présenter, réplique par réplique</h2>
+      <p class="muted">Le pinyin indique la prononciation. Essaie d’abord sans traduction, puis affiche-la pour vérifier ce que tu as compris.</p>
+      <div class="actions">
+        <button class="control" type="button" data-dialogue-toggle="pinyin" aria-pressed="true" aria-controls="dialogue-lines" disabled>Pinyin</button>
+        <button class="control" type="button" data-dialogue-toggle="translation" aria-pressed="false" aria-controls="dialogue-lines" disabled>Traduction</button>
+      </div>
+      <p class="feedback" data-dialogue-status role="status"></p>
+      <ol class="dialogue-lines" id="dialogue-lines" data-dialogue-lines></ol>
+      <noscript><p>Active JavaScript pour écouter toutes les répliques et afficher le pinyin ou la traduction.</p></noscript>
+    </section>
+
+    <section class="lesson-notes" aria-labelledby="useful-phrases">
+      <h2 id="useful-phrases">Trois phrases pour te présenter</h2>
+      <dl>
+        <div><dt><span lang="zh-Hans">我叫大卫。</span> — <span lang="zh-Latn">Wǒ jiào Dàwèi.</span></dt><dd>Je m’appelle David. Remplace <span lang="zh-Latn">Dàwèi</span> par ton prénom.</dd></div>
+        <div><dt><span lang="zh-Hans">我是法国人。</span> — <span lang="zh-Latn">Wǒ shì Fǎguó rén.</span></dt><dd>Je suis français ou française. <span lang="zh-Hans">法国</span> veut dire « France » et <span lang="zh-Hans">人</span> veut dire « personne ».</dd></div>
+        <div><dt><span lang="zh-Hans">我是学生。</span> — <span lang="zh-Latn">Wǒ shì xuésheng.</span></dt><dd>Je suis étudiant ou étudiante. Pour en faire une question, dis <span lang="zh-Latn">nǐ</span> (« tu ») et ajoute <span lang="zh-Latn">ma</span> à la fin : <span lang="zh-Latn">Nǐ shì xuésheng ma?</span></dd></div>
+      </dl>
+      <h3>Quand tu veux retourner une question</h3>
+      <p><span lang="zh-Hans">你呢？</span> (<span lang="zh-Latn">Nǐ ne?</span>) signifie « Et toi ? ». Après avoir donné ton pays, tu peux poser cette question sans répéter la phrase entière.</p>
+    </section>
+
+    <section class="next-card" aria-labelledby="practice-heading">
+      <h2 id="practice-heading">À toi de parler</h2>
+      <p>Rejoue la deuxième réplique, fais une pause puis remplace « David » par ton prénom. Essaie de garder la mélodie de <span lang="zh-Latn">Wǒ jiào</span>.</p>
+      <div class="actions">
+        <a class="control primary" href="/tons-chinois/" data-campaign>Travailler les quatre tons</a>
+        <a class="control" href="/demo/" data-campaign>Apprendre à tracer 人</a>
+      </div>
+    </section>
+  </main>
+  <footer class="public-footer">
+    <div class="public-bar">
+      <span>Yidiano · Le chinois, un peu chaque jour</span>
+      <nav aria-label="Confidentialité et crédits">
+        <a href="/legal/licences.html">Crédits</a>
+        <a href="/legal/confidentialite.html">Confidentialité</a>
+        <button class="text-link" type="button" data-consent-open hidden>Cookies</button>
+      </nav>
+    </div>
+  </footer>
+</body>
+</html>

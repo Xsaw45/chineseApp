@@ -32,9 +32,9 @@ function WordRow({ word, showLevel }) {
   )
 }
 
-export function VocabularyPage({ hasPlus, onUpgrade, onBack }) {
+export function VocabularyPage({ hasPlus, initialLevel = ALL_LEVELS[0], onUpgrade, onBack }) {
   const { lang, t } = useLang()
-  const [selectedLevel, setSelectedLevel] = useState(ALL_LEVELS[0])
+  const [selectedLevel, setSelectedLevel] = useState(initialLevel)
   const [query, setQuery] = useState('')
   const searching = query.trim() !== ''
   const words = useMemo(() => {

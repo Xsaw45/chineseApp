@@ -1,10 +1,13 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useAccess } from './access/context.js'
 import { canOpenModule } from './access/rules.js'
-import { capture } from './analytics.js'
+import { capture, consent } from './analytics.js'
 import { ConsentBanner } from './components/ConsentBanner.jsx'
-import { withActivity, markStepDone, addPracticeTime } from './utils/activity.js'
+import { activityKey, withActivity, markStepDone, addPracticeTime } from './utils/activity.js'
 import { PLACEMENT_KEY } from './utils/levelTest.js'
+import { today } from './utils/spacedrep.js'
+import { SAMPLE_LEVELS, sampleDoneKey, sampleKey, sampleLevel, startedSampleWords } from './data/freePreviews.js'
+import { READINGS } from './data/reading.js'
 import { VocabLevelTest } from './components/VocabLevelTest.jsx'
 import { LanguageChoice } from './components/LanguageChoice.jsx'
 import { useProgress } from './hooks/useProgress.js'
@@ -23,19 +26,44 @@ import { ModulesHome } from './components/ModulesHome.jsx'
 import { PinyinPage } from './components/PinyinPage.jsx'
 import { GrammarPage } from './components/GrammarPage.jsx'
 import { ReadingPage } from './components/ReadingPage.jsx'
+import { ReadingText } from './components/ReadingText.jsx'
 import { TodayPage } from './components/TodayPage.jsx'
+import { BeginnerPath } from './components/BeginnerPath.jsx'
+import { SamplePath } from './components/SamplePath.jsx'
+import { PathChoice } from './components/PathChoice.jsx'
 import { SettingsPage } from './components/SettingsPage.jsx'
 import { PlusPage } from './components/PlusPage.jsx'
 import { AdminPage } from './components/AdminPage.jsx'
 import { ReferralPage } from './components/ReferralPage.jsx'
 
+const BEGINNER_STEP_PREFIX = 'beginner_step_'
+const DEMO_COMPLETED = 'yidiano.demo.completed'
+
+function takePublicDemo() {
+  try {
+    const done = localStorage.getItem(DEMO_COMPLETED) === '1'
+    if (done) localStorage.removeItem(DEMO_COMPLETED)
+    return done
+  } catch {
+    return false
+  }
+}
+
+function beginnerSteps(progressMap) {
+  let count = 0
+  while (progressMap?.has(`${BEGINNER_STEP_PREFIX}${count + 1}`)) count += 1
+  return count
+}
+
 export default function App() {
-  // 'home' (choix du module) | 'hsk' (vocabulaire : tests et niveaux) | 'vocabulary' (liste des mots) | 'classifiers'
-  // | 'pinyin' | 'hanzi' | 'grammar' | 'reading' | 'today' | 'settings' | 'plus' | 'referral' | 'admin'
+  // Navigation des modules, du parcours guidé et des réglages.
   const [screen, setScreen] = useState('home')
   const [plusBack, setPlusBack] = useState('settings')
-  const openPlus = useCallback(from => {
-    capture('plus_viewed', { from })
+  const [plusFrom, setPlusFrom] = useState(null)
+  const openPlus = useCallback((from, offer) => {
+    const attribution = { from, ...offer }
+    capture('plus_viewed', attribution)
+    setPlusFrom(attribution)
     setPlusBack(from)
     setScreen('plus')
   }, [])
@@ -48,9 +76,26 @@ export default function App() {
   const { progressMap, latestMap, getProgress, applyUpdates: saveUpdates, loading } = useProgress()
   const { hasPlus, loading: accessLoading } = useAccess()
   const { levelStats, unlockedLevels } = useLevels(progressMap)
-  const accessibleLevels = useMemo(() => hasPlus ? unlockedLevels : [1], [hasPlus, unlockedLevels])
-  // Toute progression enregistrée compte aussi dans l'activité du jour (série, éléments maîtrisés).
-  const applyUpdates = useCallback(updates => saveUpdates(withActivity(latestMap(), updates)), [saveUpdates, latestMap])
+  const selectedLevel = progressMap?.get(SETTINGS_KEY)?.sampleLevel
+  const accessibleLevels = useMemo(() => {
+    if (!hasPlus) return [1]
+    if (!selectedLevel || unlockedLevels.includes(selectedLevel)) return unlockedLevels
+    return [...unlockedLevels, selectedLevel].sort((a, b) => a - b)
+  }, [hasPlus, unlockedLevels, selectedLevel])
+  const sampleWords = useMemo(() => startedSampleWords(progressMap), [progressMap])
+  const profile = progressMap?.get(SETTINGS_KEY)?.learnerProfile
+  const completedBeginner = beginnerSteps(progressMap)
+  // L'activité est sauvegardée même sans consentement ; seule la mesure est facultative.
+  const applyUpdates = useCallback(updates => {
+    const map = latestMap()
+    const tracked = withActivity(map, updates)
+    const key = activityKey(today())
+    const previous = map?.get(key)
+    const firstToday = (!previous || previous.practiced === false) && tracked.some(update => update.wordId === key && update.practiced)
+    const saved = saveUpdates(tracked)
+    if (firstToday) capture('learning_activity_day', { profile: profile ?? 'unselected' })
+    return saved
+  }, [saveUpdates, latestMap, profile])
 
   // Réglages synchronisés (enregistrement « settings ») : langue, premier lancement fait, test de niveau fait.
   const saveSetting = useCallback(
@@ -63,11 +108,10 @@ export default function App() {
   const setLang = useCallback(next => saveSetting({ lang: next }), [saveSetting])
   const placementDone = !!settings?.[PLACEMENT_KEY]
   const newLearner = !placementDone && ![...(progressMap?.keys() || [])].some(k => k.startsWith('hsk'))
-  // Premier lancement : choix de la langue, puis directement le test de niveau (une seule fois, même s'il est quitté).
   const onboarding = newLearner && !settings?.onboarded
-  // Test de niveau du vocabulaire en cours : { mode: 'placement', from? } | { mode: 'unlock', level }
-  // from 'onboarding' : on revient ensuite à l'accueil, pas à la page Vocabulaire.
+  // Le placement du parcours conseille un niveau ; le test standard peut programmer des révisions accessibles.
   const [levelTest, setLevelTest] = useState(null)
+  const [guidedResult, setGuidedResult] = useState(null)
   const langValue = useMemo(() => makeLang(lang, setLang), [lang, setLang])
   useEffect(() => {
     document.documentElement.lang = lang
@@ -88,6 +132,38 @@ export default function App() {
     nextQuestion,
     resetQuiz,
   } = useQuiz(progressMap, getProgress, applyUpdates, lang)
+
+  async function chooseProfile(next) {
+    const current = latestMap()?.get(SETTINGS_KEY)
+    if (current?.learnerProfile !== next) capture('learning_profile_chosen', { profile: next })
+    await saveSetting({ learnerProfile: next, demoDone: current?.demoDone || takePublicDemo() })
+    setScreen(next === 'beginner' ? 'path' : 'level')
+  }
+
+  async function chooseSample(level, method) {
+    const key = sampleKey(level)
+    capture('learning_level_chosen', { profile: 'experienced', level, method })
+    await saveSetting({ learnerProfile: 'experienced', sampleLevel: level })
+    if (!latestMap()?.has(key)) await applyUpdates([{ wordId: key, level: 'settings' }])
+    setScreen('path')
+  }
+
+  function finishPathStep(key, details) {
+    const map = latestMap()
+    if (map?.has(key)) return
+    const first = !beginnerSteps(map) && !SAMPLE_LEVELS.some(level => map?.has(sampleDoneKey(level)))
+    applyUpdates([{ wordId: key, level: 'settings' }, markStepDone(map, 'path')])
+    capture('learning_session_completed', { profile, first, ...details })
+  }
+
+  const offerId = profile === 'experienced' ? `sample_${selectedLevel}` : 'beginner_complete'
+  const trackOffer = useCallback(() => {
+    if (!hasPlus && consent() === 'granted') capture('learning_offer_viewed', { profile, offer: offerId })
+  }, [hasPlus, profile, offerId])
+
+  function startVocab() {
+    startQuiz(accessibleLevels, sampleWords)
+  }
 
   // Temps de pratique : dans un module ou un test, pas sur l'accueil ni dans les paramètres.
   const practicing = !loading && !accessLoading && (state !== QUIZ_STATES.IDLE || !['home', 'settings', 'plus', 'admin'].includes(screen))
@@ -115,7 +191,7 @@ export default function App() {
         results={results}
         onRestart={() => {
           resetQuiz()
-          setTimeout(() => startQuiz(accessibleLevels), 0)
+          setTimeout(startVocab, 0)
         }}
         onHome={() => {
           if (screen === 'today') applyUpdates([markStepDone(progressMap, 'vocab')])
@@ -131,10 +207,21 @@ export default function App() {
         level={levelTest.level}
         progressMap={progressMap}
         applyUpdates={applyUpdates}
-        onPlaced={reached => saveSetting({ [PLACEMENT_KEY]: { level: reached, date: new Date().toISOString() } })}
+        guidanceOnly={levelTest.from === 'level'}
+        allowedPlacementWord={hasPlus ? undefined : key => key.startsWith('hsk1_') || sampleWords.has(key)}
+        onPlaced={reached => {
+          if (levelTest.from === 'level') setGuidedResult(sampleLevel(reached))
+          else saveSetting({ [PLACEMENT_KEY]: { level: reached, date: new Date().toISOString() } })
+        }}
         onExit={() => {
-          setScreen(levelTest.from === 'onboarding' ? 'home' : 'hsk')
+          const guided = levelTest.from === 'level'
           setLevelTest(null)
+          if (guided && guidedResult !== null) {
+            chooseSample(guidedResult, 'placement')
+            setGuidedResult(null)
+          } else {
+            setScreen(guided ? 'level' : 'hsk')
+          }
         }}
       />
     )
@@ -145,7 +232,7 @@ export default function App() {
           // Premier lancement d'un compte nouveau : l'étape « inscription » de l'entonnoir.
           capture('signed_up', { lang: code })
           saveSetting({ lang: code, onboarded: true })
-          setLevelTest({ mode: 'placement', from: 'onboarding' })
+          setScreen('profile')
         }}
       />
     )
@@ -178,26 +265,37 @@ export default function App() {
     content = <ReadingPage hasPlus={hasPlus} onUpgrade={() => openPlus('reading')} progressMap={progressMap} applyUpdates={applyUpdates} onBack={home} />
   } else if (view === 'settings') {
     content = <SettingsPage onBack={home} onOpenPlus={() => openPlus('settings')} onOpenAdmin={() => setScreen('admin')} onOpenReferral={() => openReferral('settings')} />
+  } else if (view === 'profile' || view === 'level') {
+    content = <PathChoice choosingLevel={view === 'level'} onBeginner={() => chooseProfile('beginner')} onChooseLevel={() => chooseProfile('experienced')} onSample={chooseSample} onTest={() => setLevelTest({ mode: 'placement', from: 'level' })} onBack={() => setScreen(view === 'level' && !selectedLevel ? 'profile' : 'today')} />
+  } else if (view === 'path-next' && hasPlus) {
+    const reading = READINGS.find(item => item.id === 'wenlu')
+    content = <ReadingText reading={reading} progressMap={progressMap} applyUpdates={applyUpdates} onExit={() => setScreen('path')} backLabel={translate(lang, 'path.back')} exitLabel={translate(lang, 'path.back')} />
+  } else if (view === 'path' && profile === 'beginner') {
+    content = <BeginnerPath completed={completedBeginner} demoDone={settings?.demoDone === true} onComplete={step => finishPathStep(`${BEGINNER_STEP_PREFIX}${step}`, { step })} progressMap={progressMap} applyUpdates={applyUpdates} onBack={() => setScreen('today')} onOffer={trackOffer} onUpgrade={() => openPlus('path', { profile, offer: offerId })} onFullDialogue={hasPlus && READINGS.some(item => item.id === 'wenlu' && !item.locked) ? () => setScreen('path-next') : null} />
+  } else if (view === 'path' && selectedLevel) {
+    content = <SamplePath key={selectedLevel} level={selectedLevel} completed={progressMap.has(sampleDoneKey(selectedLevel))} progressMap={progressMap} getProgress={getProgress} applyUpdates={applyUpdates} hasPlus={hasPlus} onComplete={() => finishPathStep(sampleDoneKey(selectedLevel), { level: selectedLevel })} onBack={() => setScreen('today')} onChangeLevel={() => setScreen('level')} onOffer={trackOffer} onUpgrade={() => openPlus('path', { profile, offer: offerId })} onFullVocabulary={() => setScreen('sample-vocabulary')} />
+  } else if (view === 'sample-vocabulary' && hasPlus && selectedLevel) {
+    content = <VocabularyPage hasPlus initialLevel={selectedLevel} onBack={() => setScreen('path')} />
   } else if (view === 'plus') {
-    content = <PlusPage onBack={() => setScreen(plusBack)} onOpenReferral={() => openReferral('plus')} />
+    content = <PlusPage attribution={plusFrom} onBack={() => setScreen(plusBack)} onOpenReferral={() => openReferral('plus')} />
   } else if (view === 'referral') {
     content = <ReferralPage onBack={() => setScreen(referralBack)} />
   } else if (view === 'admin') {
     content = <AdminPage onBack={() => setScreen('settings')} />
   } else if (view === 'today') {
-    content = <TodayPage key={hasPlus} hasPlus={hasPlus} progressMap={progressMap} applyUpdates={applyUpdates} onBack={home} onStartVocab={() => startQuiz(accessibleLevels)} />
+    content = <TodayPage key={hasPlus} hasPlus={hasPlus} progressMap={progressMap} applyUpdates={applyUpdates} onBack={home} onStartVocab={startVocab} accessibleLevels={accessibleLevels} sampleWords={sampleWords} profile={profile} selectedLevel={selectedLevel} onOpenPath={() => setScreen(profile === 'beginner' || selectedLevel ? 'path' : profile === 'experienced' ? 'level' : 'profile')} />
   } else if (view === 'hsk') {
     content = (
       <Dashboard
         hasPlus={hasPlus}
         onUpgrade={() => openPlus('hsk')}
         levelStats={levelStats}
-        unlockedLevels={unlockedLevels}
+        unlockedLevels={hasPlus ? accessibleLevels : unlockedLevels}
         progressMap={progressMap}
         placementDone={placementDone}
         onStartPlacement={() => setLevelTest({ mode: 'placement' })}
         onStartUnlockTest={level => setLevelTest({ mode: 'unlock', level })}
-        onStartQuiz={() => startQuiz(accessibleLevels)}
+        onStartQuiz={startVocab}
         onOpenVocabulary={() => setScreen('vocabulary')}
         onBack={home}
       />
@@ -219,6 +317,9 @@ export default function App() {
         onOpenSettings={() => setScreen('settings')}
         onOpenReferral={() => openReferral('home')}
         hasPlus={hasPlus}
+        accessibleLevels={accessibleLevels}
+        sampleWords={sampleWords}
+        profile={profile}
       />
     )
   }

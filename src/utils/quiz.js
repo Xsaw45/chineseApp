@@ -36,17 +36,21 @@ const pick = arr => arr[Math.floor(Math.random() * arr.length)]
  * Le rythme s'adapte ainsi à l'utilisateur : qui retient vite maîtrise ses mots et en reçoit d'autres ; qui
  * a du mal retravaille les mêmes ; quand les révisions s'accumulent, elles passent avant tout le reste.
  */
-export function selectQuizWords(progressMap, unlockedLevels) {
+export function selectQuizWords(progressMap, unlockedLevels, extraWords) {
   const due = []
   const learning = []
   const fresh = new Map() // niveau → mots jamais vus
+  const consider = word => {
+    const progress = progressMap.get(word.id)
+    if (!progress) (fresh.get(word.level) || fresh.set(word.level, []).get(word.level)).push(word)
+    else if (progress.known) { if (isDueForReview(progress)) due.push({ word, nextReview: progress.nextReview }) }
+    else learning.push(word)
+  }
   for (const level of unlockedLevels) {
-    for (const word of getWordsForLevel(level)) {
-      const progress = progressMap.get(word.id)
-      if (!progress) (fresh.get(level) || fresh.set(level, []).get(level)).push(word)
-      else if (progress.known) { if (isDueForReview(progress)) due.push({ word, nextReview: progress.nextReview }) }
-      else learning.push(word)
-    }
+    for (const word of getWordsForLevel(level)) consider(word)
+  }
+  for (const word of extraWords?.values() ?? []) {
+    if (!unlockedLevels.includes(word.level)) consider(word)
   }
   const reviews = shuffle(due).sort((a, b) => a.nextReview.localeCompare(b.nextReview)).map(d => d.word)
   const newSlots = Math.max(0, LEARNING_LIMIT - learning.length)
@@ -166,9 +170,9 @@ const STAGES = [
 ]
 
 /** Question adaptée à la progression ; si le QCM tiré est impossible pour ce mot, un autre du même niveau, sinon la saisie. */
-export function buildQuestion(word, progress) {
+export function buildQuestion(word, progress, preferredType) {
   const stage = progress.known ? 2 : Math.min(progress.successCount, 2)
-  for (const type of shuffle(STAGES[stage])) {
+  for (const type of preferredType ? [preferredType, ...shuffle(STAGES[stage]).filter(t => t !== preferredType)] : shuffle(STAGES[stage])) {
     if (!BUILDERS[type]) return { word, type }
     const built = BUILDERS[type](word)
     if (built) return { word, type, ...built }
@@ -176,7 +180,7 @@ export function buildQuestion(word, progress) {
   return { word, type: pick(STAGES[2]) }
 }
 
-export function buildQuiz(progressMap, unlockedLevels) {
-  return selectQuizWords(progressMap, unlockedLevels)
+export function buildQuiz(progressMap, unlockedLevels, extraWords) {
+  return selectQuizWords(progressMap, unlockedLevels, extraWords)
     .map(word => buildQuestion(word, progressMap.get(word.id) || createInitialProgress(word.id, word.level)))
 }

@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react'
 import { GRAMMAR_POINTS } from '../data/grammar.js'
 import { HANZI } from '../data/hanzi.js'
+import { sampleLabel } from '../data/freePreviews.js'
 import { canUseGrammarPoint, canUseHanzi } from '../access/rules.js'
 import { Check, ChevronRight, Flame } from 'lucide-react'
 import { activityStats, markStepDone } from '../utils/activity.js'
@@ -91,12 +92,12 @@ function Streak({ stats }) {
  * Chaque étape ouvre le test habituel de son module et revient ici ; elle est finie quand on l'a faite aujourd'hui
  * et qu'il ne reste rien à réviser.
  */
-export function TodayPage({ hasPlus, progressMap, applyUpdates, onBack, onStartVocab }) {
+export function TodayPage({ hasPlus, accessibleLevels, sampleWords, profile, selectedLevel, progressMap, applyUpdates, onBack, onOpenPath, onStartVocab }) {
   const { t, l } = useLang()
   const [active, setActive] = useState(null) // { id, run, content }
   const touched = useRef(false) // l'étape en cours a enregistré au moins une réponse
 
-  const plan = todayPlan(progressMap, hasPlus)
+  const plan = todayPlan(progressMap, { hasPlus, accessibleLevels, sampleWords, profile })
   const intro = plan.find(step => step.reading && !step.due)
   const next = intro ?? plan.find(step => !step.done)
 
@@ -139,6 +140,11 @@ export function TodayPage({ hasPlus, progressMap, applyUpdates, onBack, onStartV
       <TopBar onBack={onBack} title={<>{t('today.title')} <span className="chinese-text text-fg-2">今天</span></>} bordered />
 
       <div className="flex flex-1 flex-col px-5 py-6">
+        <section className="mb-5 rounded-2xl border border-seal/40 bg-card p-4">
+          <h2 className="mb-1 text-lg font-medium text-fg">{selectedLevel && profile === 'experienced' ? sampleLabel(selectedLevel) : t('path.title')}</h2>
+          <p className="mb-3 text-sm text-fg-2">{t(profile ? 'path.todayResume' : 'path.todayChoose')}</p>
+          <Button onClick={onOpenPath}>{t(profile ? 'path.continue' : 'path.choose')}</Button>
+        </section>
         <Streak stats={activityStats(progressMap)} />
 
         <SectionLabel className="mt-8">{t('today.plan', { done: doneCount, total: plan.length })}</SectionLabel>
@@ -185,10 +191,10 @@ export function TodayPage({ hasPlus, progressMap, applyUpdates, onBack, onStartV
 }
 
 /** Carte de l'accueil : où en est la séance du jour, et la série de jours. */
-export function TodayCard({ hasPlus, progressMap, onOpen }) {
+export function TodayCard({ hasPlus, accessibleLevels, sampleWords, profile, progressMap, onOpen }) {
   const { t } = useLang()
   const { streak } = activityStats(progressMap)
-  const left = todayPlan(progressMap, hasPlus).filter(s => !s.done).length
+  const left = todayPlan(progressMap, { hasPlus, accessibleLevels, sampleWords, profile }).filter(s => !s.done).length
   return (
     <button
       type="button"

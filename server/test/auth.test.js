@@ -217,8 +217,8 @@ test('contenu Yidiano+ : refusé à la formule gratuite, servi pendant l abonnem
   assert.match(version, /^[0-9a-f]{16}$/)
   assert.ok(grammar.some(point => point.level === 1) && grammar.every(point => point.explanation))
   assert.ok(grammar.every(point => !['shi', 'ma', 'you'].includes(point.id)))
-  assert.ok(readings.some(reading => reading.id === 'fanguan') && readings.every(reading => reading.lines?.length))
-  assert.ok(readings.every(reading => reading.id !== 'jieshao'))
+  assert.ok(readings.some(reading => reading.id === 'wenlu' && reading.lines.length > 1))
+  assert.ok(readings.every(reading => !['jieshao', 'fanguan', 'mai-yifu', 'jiudian', 'mianshi'].includes(reading.id)))
 })
 
 test('suppression du compte : confirmation par l adresse, puis progression et sessions effacées', async () => {

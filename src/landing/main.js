@@ -11,7 +11,7 @@ if (referred) {
 }
 
 // Mesure d'audience : bandeau tant qu'aucun choix n'est fait ; le lien « Cookies » du pied de page le rouvre.
-initAnalytics('landing')
+initAnalytics('landing', referred ? 'referral' : null)
 if (referred) capture('referral_link_opened')
 const banner = document.querySelector('[data-consent]')
 banner.hidden = consent() !== null

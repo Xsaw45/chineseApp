@@ -13,7 +13,7 @@ import { Button, ProgressBar, Score, Screen, TopBar } from './ui.jsx'
  * mode 'placement' : du HSK 1 vers le haut, tant que le niveau est réussi ; onPlaced(niveau atteint, 0 si aucun).
  * mode 'unlock' : mots du niveau `level - 1`, pour débloquer `level`.
  */
-export function VocabLevelTest({ mode, level, progressMap, applyUpdates, onPlaced, onExit }) {
+export function VocabLevelTest({ mode, level, progressMap, applyUpdates, onPlaced, onExit, allowedPlacementWord, guidanceOnly = false }) {
   const { t, pct } = useLang()
   const placement = mode === 'placement'
   const firstLevel = placement ? PLACEMENT_LEVELS[0] : level - 1
@@ -25,10 +25,11 @@ export function VocabLevelTest({ mode, level, progressMap, applyUpdates, onPlace
   const [result, setResult] = useState(null) // { reached } (placement) ou { ratio, passed } (déblocage)
 
   function finish(blocks) {
-    const updates = blocks.flatMap(b => levelUpdates(b.level, b.answers, b.passed, progressMap))
+    const updates = guidanceOnly ? [] : blocks.flatMap(b => levelUpdates(b.level, b.answers, b.passed, progressMap))
     if (placement) {
       const reached = blocks.filter(b => b.passed).at(-1)?.level ?? 0
-      if (updates.length) applyUpdates(updates)
+      const allowed = allowedPlacementWord ? updates.filter(update => allowedPlacementWord(update.wordId)) : updates
+      if (allowed.length) applyUpdates(allowed)
       onPlaced(reached)
       setResult({ reached })
     } else {
@@ -64,14 +65,16 @@ export function VocabLevelTest({ mode, level, progressMap, applyUpdates, onPlace
   if (result) {
     const value = placement ? (result.reached ? `HSK ${result.reached}` : t('lt.beginner')) : pct(result.ratio)
     const caption = placement
-      ? (result.reached ? t('lt.placedCaption', { level: result.reached, next: result.reached + 1 }) : t('lt.beginnerCaption'))
+      ? guidanceOnly
+        ? t('path.placementHint')
+        : (result.reached ? t('lt.placedCaption', { level: result.reached, next: result.reached + 1 }) : t('lt.beginnerCaption'))
       : t(result.passed ? 'lt.unlockPassed' : 'lt.unlockFailed', { level, pct: pct(UNLOCK_PASS) })
     const good = placement ? (result.reached > 0 || undefined) : result.passed
     return (
       <Screen className="px-5 pb-8">
         <div className="my-auto">
           <Score value={value} label={t(placement ? 'lt.placedLabel' : 'lt.unlockLabel', { level })} caption={caption} good={good} />
-          <p className="text-center text-sm text-fg-3">{t('lt.howReviewed')}</p>
+          {!guidanceOnly && <p className="text-center text-sm text-fg-3">{t('lt.howReviewed')}</p>}
         </div>
         <Button onClick={onExit}>{t('lt.continue')}</Button>
       </Screen>

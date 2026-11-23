@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto'
 import { GRAMMAR_POINTS } from './grammar.js'
 import { READINGS } from './readings.js'
+import { lineText, lineVoice } from '../src/data/readingLines.js'
 
 /*
  * Utilisé à la construction de l'app (vite.config.js, module virtual:yidiano-content) et par le serveur
@@ -18,11 +19,12 @@ const summaries = {
 const sources = { grammar: GRAMMAR_POINTS, readings: READINGS }
 const freeIds = {
   grammar: new Set(['shi', 'ma', 'you']),
-  readings: new Set(['jieshao']),
+  readings: new Set(['jieshao', 'fanguan', 'mai-yifu', 'jiudian', 'mianshi']),
 }
+const excerptIds = new Set(['wenlu', 'kanbing', 'shanghai', 'zufang'])
 
 export function splitContent() {
-  const client = {}
+  const client = { excerpts: {} }
   const plus = {}
   for (const [name, items] of Object.entries(sources)) {
     client[name] = []
@@ -34,6 +36,13 @@ export function splitContent() {
         client[name].push({ ...summaries[name](item), plus: true, locked: true })
         plus[name].push({ ...item, plus: true })
       }
+    }
+  }
+  for (const reading of READINGS) {
+    if (!excerptIds.has(reading.id)) continue
+    const line = reading.lines[0]
+    client.excerpts[reading.id] = {
+      zh: lineText(line), pinyin: line.pinyin, tr: line.tr, voice: lineVoice(reading, line), title: reading.title,
     }
   }
   const version = createHash('sha256').update(JSON.stringify(plus)).digest('hex').slice(0, 16)

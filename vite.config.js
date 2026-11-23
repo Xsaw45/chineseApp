@@ -64,6 +64,9 @@ export default defineConfig({
         app: fileURLToPath(new URL('./index.html', import.meta.url)),
         landing: fileURLToPath(new URL('./landing.html', import.meta.url)),
         login: fileURLToPath(new URL('./login/index.html', import.meta.url)),
+        demo: fileURLToPath(new URL('./demo/index.html', import.meta.url)),
+        tones: fileURLToPath(new URL('./tons-chinois/index.html', import.meta.url)),
+        dialogue: fileURLToPath(new URL('./dialogue-chinois/index.html', import.meta.url)),
         legalNotices: fileURLToPath(new URL('./legal/mentions-legales.html', import.meta.url)),
         legalTerms: fileURLToPath(new URL('./legal/conditions.html', import.meta.url)),
         legalPrivacy: fileURLToPath(new URL('./legal/confidentialite.html', import.meta.url)),
@@ -115,7 +118,8 @@ export default defineConfig({
           options: { cacheName: 'zh-pages', networkTimeoutSeconds: 4 },
         }, {
           // Enregistrements (36 Mo au total) : gardés une fois écoutés, pas téléchargés d'avance.
-          urlPattern: ({ url }) => url.pathname.startsWith('/audio/'),
+          // Les lecteurs natifs des pages publiques demandent parfois des octets partiels : laisser le serveur répondre en 206.
+          urlPattern: ({ url, request }) => url.pathname.startsWith('/audio/') && !request.headers.has('range'),
           handler: 'CacheFirst',
           options: { cacheName: 'zh-audio', expiration: { maxEntries: 5000 } },
         }, {

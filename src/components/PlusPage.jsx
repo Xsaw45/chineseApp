@@ -22,7 +22,7 @@ function priceLabel({ amount, currency }, lang) {
   return format.format(amount / 10 ** format.resolvedOptions().maximumFractionDigits)
 }
 
-export function PlusPage({ onBack, onOpenReferral }) {
+export function PlusPage({ attribution, onBack, onOpenReferral }) {
   const { account, refresh } = useAccess()
   const { lang, t } = useLang()
   const [now] = useState(Date.now)
@@ -122,7 +122,7 @@ export function PlusPage({ onBack, onOpenReferral }) {
 
   function subscribe() {
     setCheckout('opening')
-    opened.current = { plan, trial: Boolean(trial) }
+    opened.current = { ...attribution, plan, trial: Boolean(trial) }
     capture('checkout_opened', opened.current)
     try {
       paddle.Paddle.Checkout.open({
