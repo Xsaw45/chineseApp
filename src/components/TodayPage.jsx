@@ -12,6 +12,9 @@ import { useLang } from '../i18n/useLang.js'
 import { CharacterPractice } from './CharacterPractice.jsx'
 import { ClassifierQuiz } from './ClassifierQuiz.jsx'
 import { GrammarReview } from './GrammarPage.jsx'
+import { GrammarPoint } from './GrammarPoint.jsx'
+import { GuidedPath } from './GuidedPath.jsx'
+import { stepTarget } from '../utils/path.js'
 import { PinyinLesson } from './PinyinLesson.jsx'
 import { RadicalQuiz } from './RadicalsPage.jsx'
 import { ReadingText } from './ReadingText.jsx'
@@ -92,7 +95,7 @@ function Streak({ stats }) {
  * Chaque étape ouvre le test habituel de son module et revient ici ; elle est finie quand on l'a faite aujourd'hui
  * et qu'il ne reste rien à réviser.
  */
-export function TodayPage({ hasPlus, accessibleLevels, sampleWords, profile, selectedLevel, progressMap, applyUpdates, onBack, onOpenPath, onStartVocab }) {
+export function TodayPage({ hasPlus, accessibleLevels, sampleWords, profile, selectedLevel, completedBeginner, progressMap, applyUpdates, onBack, onOpenPath, onStartVocab, onStartGuidedWords, onUpgrade }) {
   const { t, l } = useLang()
   const [active, setActive] = useState(null) // { id, run, content }
   const touched = useRef(false) // l'étape en cours a enregistré au moins une réponse
@@ -110,19 +113,36 @@ export function TodayPage({ hasPlus, accessibleLevels, sampleWords, profile, sel
     setActive({ id: step.id, run: 1, content: step.reading ?? buildStep(step.id, progressMap, hasPlus) })
   }
 
+  function launchGuided(unit, step) {
+    if (unit.plus && !hasPlus) return onUpgrade()
+    if (step.kind === 'words') return onStartGuidedWords(step.wordIds)
+    const content = step.kind === 'hanzi' ? buildHanziPractice(progressMap, 1, step.chars) : stepTarget(step)
+    setActive({ guided: true, step, run: 1, content })
+  }
+
   const stepApply = updates => {
     touched.current = true
     return applyUpdates(updates)
   }
   const exit = () => {
-    if (touched.current) applyUpdates([markStepDone(progressMap, active.id)])
+    if (!active.guided && touched.current) applyUpdates([markStepDone(progressMap, active.id)])
     setActive(null)
   }
-  const restart = () => setActive(a => ({ ...a, run: a.run + 1, content: buildStep(a.id, progressMap, hasPlus) }))
+  const restart = () => setActive(a => ({
+    ...a,
+    run: a.run + 1,
+    content: a.guided ? buildHanziPractice(progressMap, 1, a.step.chars) : buildStep(a.id, progressMap, hasPlus),
+  }))
 
   if (active) {
     const common = { progressMap, applyUpdates: stepApply, onExit: exit, exitLabel: t('today.back') }
     const key = active.run
+    if (active.guided) {
+      if (active.step.kind === 'hanzi') return <CharacterPractice key={key} {...common} items={active.content} onRestart={restart} />
+      if (active.step.kind === 'grammar') return <GrammarPoint key={key} {...common} point={active.content} hasNext={false} />
+      if (active.step.kind === 'reading') return <ReadingText key={key} {...common} reading={active.content} backLabel={t('today.title')} />
+      if (active.step.kind === 'pinyin') return <PinyinLesson key={key} {...common} lesson={active.content} hasNext={false} onNextLesson={exit} backLabel={t('today.title')} />
+    }
     if (active.id === 'hanzi') return <CharacterPractice key={key} {...common} items={active.content} onRestart={restart} />
     if (active.id === 'radicals') return <RadicalQuiz key={key} {...common} questions={active.content} onRestart={restart} />
     if (active.id === 'classifiers') return <ClassifierQuiz key={key} {...common} questions={active.content} onRestart={restart} />
@@ -140,10 +160,21 @@ export function TodayPage({ hasPlus, accessibleLevels, sampleWords, profile, sel
       <TopBar onBack={onBack} title={<>{t('today.title')} <span className="chinese-text text-fg-2">今天</span></>} bordered />
 
       <div className="flex flex-1 flex-col px-5 py-6">
-        <section className="mb-5 rounded-2xl border border-seal/40 bg-card p-4">
-          <h2 className="mb-1 text-lg font-medium text-fg">{selectedLevel && profile === 'experienced' ? sampleLabel(selectedLevel) : t('path.title')}</h2>
-          <p className="mb-3 text-sm text-fg-2">{t(profile ? 'path.todayResume' : 'path.todayChoose')}</p>
-          <Button onClick={onOpenPath}>{t(profile ? 'path.continue' : 'path.choose')}</Button>
+        {profile === 'beginner' && completedBeginner >= 5 && (
+          <GuidedPath hasPlus={hasPlus} progressMap={progressMap} onStartStep={launchGuided} onUpgrade={onUpgrade} />
+        )}
+        <section className="mb-5 mt-5 rounded-2xl border border-seal/40 bg-card p-4">
+          <h2 className="mb-1 text-lg font-medium text-fg">
+            {profile === 'beginner' && completedBeginner >= 5
+              ? l({ fr: 'Séances précédentes', en: 'Earlier sessions' })
+              : selectedLevel && profile === 'experienced' ? sampleLabel(selectedLevel) : t('path.title')}
+          </h2>
+          <p className="mb-3 text-sm text-fg-2">{profile === 'beginner' && completedBeginner >= 5
+            ? l({ fr: 'Retrouve les dialogues et exercices déjà découverts.', en: 'Revisit the dialogues and exercises you have already discovered.' })
+            : t(profile ? 'path.todayResume' : 'path.todayChoose')}</p>
+          <Button onClick={onOpenPath}>{profile === 'beginner' && completedBeginner >= 5
+            ? l({ fr: 'Revoir les cinq séances', en: 'Review the five sessions' })
+            : t(profile ? 'path.continue' : 'path.choose')}</Button>
         </section>
         <Streak stats={activityStats(progressMap)} />
 

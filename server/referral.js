@@ -31,6 +31,8 @@ export function attachReferral(db, email, code, now = Date.now()) {
   if (!db.accounts.firstLogin(email, now) || !REF_CODE.test(code || '')) return false
   const referrer = db.accounts.byReferralCode(code)
   if (!referrer || referrer.email === email) return false
+  // Une invitation sociale est facultative : un plafond ou un blocage ne doit pas annuler le parrainage.
+  db.social.request(email, referrer.email, now)
   return db.referrals.add(refereeHash(email), referrer.email, now)
 }
 

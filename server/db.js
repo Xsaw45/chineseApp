@@ -1,5 +1,7 @@
 import { DatabaseSync } from 'node:sqlite'
 
+export const MAX_RELATIONS = 200
+
 // Journées d'activité (src/utils/activity.js) : chaque appareil écrit ses propres totaux du jour.
 const ACTIVITY = /^act_\d{4}-\d{2}-\d{2}$/
 const isPracticed = day => day.practiced !== false // absent : enregistrement d'avant ce champ, toujours pratiqué
@@ -9,6 +11,8 @@ function mergeActivity(a, b) {
   const max = field => Math.max(a[field] || 0, b[field] || 0)
   const merged = { ...a, ...b, practiced: isPracticed(a) || isPracticed(b), learned: max('learned'), seconds: max('seconds') }
   if (a.done || b.done) merged.done = [...new Set([...(a.done || []), ...(b.done || [])])]
+  if ('vocabTests' in a || 'vocabTests' in b) merged.vocabTests = max('vocabTests')
+  if ('xp' in a || 'xp' in b) merged.xp = max('xp')
   return merged
 }
 
@@ -97,6 +101,26 @@ export function openDb(path) {
     CREATE INDEX IF NOT EXISTS referrals_by_referrer ON referrals (referrer);
   `)
 
+  // Les blocages sont directionnels : chacun peut bloquer ou débloquer indépendamment.
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS profiles (
+      email TEXT PRIMARY KEY, name TEXT NOT NULL, name_key TEXT NOT NULL UNIQUE,
+      avatar TEXT NOT NULL, updated_at INTEGER NOT NULL
+    ) WITHOUT ROWID;
+    CREATE TABLE IF NOT EXISTS friendships (
+      requester TEXT NOT NULL, addressee TEXT NOT NULL,
+      status TEXT NOT NULL CHECK (status IN ('pending', 'accepted', 'blocked')),
+      created_at INTEGER NOT NULL, PRIMARY KEY (requester, addressee)
+    ) WITHOUT ROWID;
+    CREATE INDEX IF NOT EXISTS friendships_by_addressee ON friendships (addressee);
+    CREATE TABLE IF NOT EXISTS social_blocks (
+      blocker TEXT NOT NULL, blocked TEXT NOT NULL, created_at INTEGER NOT NULL,
+      PRIMARY KEY (blocker, blocked)
+    ) WITHOUT ROWID;
+    INSERT OR IGNORE INTO social_blocks SELECT requester, addressee, created_at FROM friendships WHERE status = 'blocked';
+    DELETE FROM friendships WHERE status = 'blocked';
+  `)
+
   const currentSeq = db.prepare('SELECT seq FROM counter WHERE id = 1')
   const nextSeq = db.prepare('UPDATE counter SET seq = seq + 1 WHERE id = 1 RETURNING seq')
   const upsert = db.prepare(`
@@ -144,7 +168,7 @@ export function openDb(path) {
       MAX(CASE WHEN act AND practiced THEN substr(key, 5) END) AS last_day,
       SUM(CASE WHEN act THEN coalesce(json_extract(value, '$.seconds'), 0) ELSE 0 END) AS seconds,
       SUM(CASE WHEN act THEN coalesce(json_extract(value, '$.learned'), 0) ELSE 0 END) AS learned,
-      SUM(NOT act AND key <> 'settings' AND coalesce(json_extract(value, '$.placed'), 0) = 0) AS items
+      SUM(NOT act AND key <> 'settings' AND key NOT LIKE 'ach\\_%' ESCAPE '\\' AND coalesce(json_extract(value, '$.placed'), 0) = 0) AS items
     FROM (
       SELECT user, key, value, key LIKE 'act\\_%' ESCAPE '\\' AS act,
         coalesce(json_extract(value, '$.practiced'), 1) <> 0 AS practiced
@@ -182,10 +206,56 @@ export function openDb(path) {
     WHERE email = ? AND (paddle_event_at IS NULL OR paddle_event_at <= ?)
     RETURNING *
   `)
-  // Suppression d'un compte (RGPD) : progression, sessions, demande de connexion, filleuls (comme parrain) et compte.
-  // Comme filleul, seule l'empreinte de l'adresse reste dans referrals (une adresse ne rapporte qu'une fois).
+  // Suppression RGPD, y compris les relations et blocages dans les deux sens.
   const deleteStatements = ['records WHERE user = ?', 'sessions WHERE email = ?', 'login_requests WHERE email = ?',
-    'referrals WHERE referrer = ?', 'accounts WHERE email = ?'].map(target => db.prepare(`DELETE FROM ${target}`))
+    'referrals WHERE referrer = ?', 'profiles WHERE email = ?', 'friendships WHERE requester = ?',
+    'friendships WHERE addressee = ?', 'social_blocks WHERE blocker = ?', 'social_blocks WHERE blocked = ?',
+    'accounts WHERE email = ?'].map(target => db.prepare(`DELETE FROM ${target}`))
+
+  const getProfile = db.prepare('SELECT name, avatar FROM profiles WHERE email = ?')
+  const putProfile = db.prepare(`
+    INSERT INTO profiles (email, name, name_key, avatar, updated_at) VALUES (?, ?, ?, ?, ?)
+    ON CONFLICT (email) DO UPDATE SET name = excluded.name, name_key = excluded.name_key, avatar = excluded.avatar,
+      updated_at = excluded.updated_at
+  `)
+  const deleteProfile = db.prepare('DELETE FROM profiles WHERE email = ?')
+  const listProfiles = db.prepare('SELECT email, name FROM profiles')
+  const getPair = db.prepare(`
+    SELECT blocker AS requester, blocked AS addressee, 'blocked' AS status FROM social_blocks
+    WHERE (blocker = ?1 AND blocked = ?2) OR (blocker = ?2 AND blocked = ?1)
+    ORDER BY blocker = ?1 DESC LIMIT 1
+  `)
+  const getFriendship = db.prepare(`
+    SELECT * FROM friendships WHERE (requester = ?1 AND addressee = ?2) OR (requester = ?2 AND addressee = ?1)
+  `)
+  const deletePair = db.prepare(`
+    DELETE FROM friendships WHERE (requester = ?1 AND addressee = ?2) OR (requester = ?2 AND addressee = ?1)
+  `)
+  const insertPair = db.prepare("INSERT INTO friendships (requester, addressee, status, created_at) VALUES (?, ?, 'pending', ?)")
+  const acceptPair = db.prepare("UPDATE friendships SET status = 'accepted' WHERE requester = ? AND addressee = ? AND status = 'pending'")
+  const insertBlock = db.prepare('INSERT OR IGNORE INTO social_blocks (blocker, blocked, created_at) VALUES (?, ?, ?)')
+  const deleteBlock = db.prepare('DELETE FROM social_blocks WHERE blocker = ? AND blocked = ?')
+  const relationsOf = db.prepare(`
+    SELECT f.status, f.requester = ?1 AS mine, f.created_at, o.email AS other, o.referral_code AS code, p.name, p.avatar
+    FROM friendships f
+    JOIN accounts o ON o.email = CASE WHEN f.requester = ?1 THEN f.addressee ELSE f.requester END
+    LEFT JOIN profiles p ON p.email = o.email
+    WHERE f.requester = ?1 OR f.addressee = ?1
+    UNION ALL
+    SELECT 'blocked', 1, b.created_at, o.email, o.referral_code, p.name, p.avatar
+    FROM social_blocks b JOIN accounts o ON o.email = b.blocked LEFT JOIN profiles p ON p.email = o.email
+    WHERE b.blocker = ?1
+  `)
+  const countRelations = db.prepare('SELECT count(*) AS n FROM friendships WHERE requester = ?1 OR addressee = ?1')
+  const activityOf = db.prepare(`
+    SELECT substr(key, 5) AS day, coalesce(json_extract(value, '$.practiced'), 1) <> 0 AS practiced,
+      coalesce(json_extract(value, '$.xp'), 0) AS xp
+    FROM records WHERE user = ? AND app = 'zh' AND key LIKE 'act\\_%' ESCAPE '\\' AND value IS NOT NULL
+    ORDER BY key DESC
+  `)
+  const countTrophies = db.prepare(`
+    SELECT count(*) AS n FROM records WHERE user = ? AND app = 'zh' AND key LIKE 'ach\\_%' ESCAPE '\\' AND value IS NOT NULL
+  `)
 
   const toChange = (row) => ({
     key: row.key,
@@ -328,6 +398,58 @@ export function openDb(path) {
         const row = referralStats.get(yearStart, referrer)
         return { invited: row.invited, qualified: row.qualified, months: row.months, monthsYear: row.months_year }
       },
+    },
+
+    social: {
+      profile: email => getProfile.get(email) || null,
+      setProfile(email, { name, nameKey, avatar }, now = Date.now()) {
+        try {
+          putProfile.run(email, name, nameKey, avatar, now)
+          return true
+        } catch (err) {
+          if (String(err.message).includes('UNIQUE')) return false
+          throw err
+        }
+      },
+      deleteProfile: email => deleteProfile.run(email).changes > 0,
+      names: () => new Map(listProfiles.all().map(row => [row.email, row.name])),
+      pair: (a, b) => getPair.get(a, b) || getFriendship.get(a, b) || null,
+      request(a, b, now = Date.now()) {
+        db.exec('BEGIN IMMEDIATE')
+        try {
+          let result
+          if (getPair.get(a, b) || getFriendship.get(a, b)) result = 'exists'
+          else if (countRelations.get(a).n >= MAX_RELATIONS) result = 'too_many'
+          else if (countRelations.get(b).n >= MAX_RELATIONS) result = 'recipient_full'
+          else {
+            insertPair.run(a, b, now)
+            result = 'pending'
+          }
+          db.exec('COMMIT')
+          return result
+        } catch (err) {
+          db.exec('ROLLBACK')
+          throw err
+        }
+      },
+      accept: (a, b) => acceptPair.run(a, b).changes > 0,
+      unlink: (a, b) => deletePair.run(a, b).changes > 0,
+      block(a, b, now = Date.now()) {
+        db.exec('BEGIN IMMEDIATE')
+        try {
+          deletePair.run(a, b)
+          insertBlock.run(a, b, now)
+          db.exec('COMMIT')
+        } catch (err) {
+          db.exec('ROLLBACK')
+          throw err
+        }
+      },
+      unblock: (a, b) => deleteBlock.run(a, b).changes > 0,
+      relations: email => relationsOf.all(email).map(row => ({ ...row, mine: Boolean(row.mine) })),
+      relationCount: email => countRelations.get(email).n,
+      activity: email => activityOf.all(email).map(row => ({ day: row.day, practiced: Boolean(row.practiced), xp: row.xp })),
+      trophies: email => countTrophies.get(email).n,
     },
 
 

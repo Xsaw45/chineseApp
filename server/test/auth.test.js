@@ -5,6 +5,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { DatabaseSync } from 'node:sqlite'
 import { buildApp } from '../app.js'
+import { splitContent } from '../../content/split.js'
 
 let app
 let dir
@@ -215,8 +216,11 @@ test('contenu Yidiano+ : refusé à la formule gratuite, servi pendant l abonnem
   assert.equal(res.statusCode, 200)
   const { version, grammar, readings } = res.json()
   assert.match(version, /^[0-9a-f]{16}$/)
-  assert.ok(grammar.some(point => point.level === 1) && grammar.every(point => point.explanation))
-  assert.ok(grammar.every(point => !['shi', 'ma', 'you'].includes(point.id)))
+  assert.ok(grammar.length > 0 && grammar.every(point => point.level > 1 && point.explanation))
+  const { client } = splitContent()
+  assert.equal(client.grammar.filter(point => point.level === 1 && !point.locked && point.explanation).length, 16)
+  assert.ok(['jieshao', 'fanguan', 'mai-yifu', 'jiudian', 'mianshi'].every(id => client.readings.some(reading => reading.id === id && reading.lines?.length)))
+  assert.ok(['wenlu', 'kanbing', 'shanghai', 'zufang'].every(id => client.excerpts[id]))
   assert.ok(readings.some(reading => reading.id === 'wenlu' && reading.lines.length > 1))
   assert.ok(readings.every(reading => !['jieshao', 'fanguan', 'mai-yifu', 'jiudian', 'mianshi'].includes(reading.id)))
 })

@@ -32,6 +32,7 @@ export function AdminPage({ onBack }) {
   const { t } = useLang()
   const [accounts, setAccounts] = useState([])
   const [saving, setSaving] = useState(null)
+  const [error, setError] = useState(false)
 
   useEffect(() => {
     fetch('/api/admin/accounts')
@@ -48,10 +49,31 @@ export function AdminPage({ onBack }) {
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ role }),
       })
-      if (!response.ok) return
+      if (!response.ok) {
+        setError(true)
+        return
+      }
       const changed = await response.json()
       // La réponse ne contient que le compte et ses droits : l'usage déjà affiché est gardé.
       setAccounts(current => current.map(account => account.login === login ? { ...account, ...changed } : account))
+      setError(false)
+    } catch {
+      setError(true)
+    } finally {
+      setSaving(null)
+    }
+  }
+
+  async function removePseudo(login) {
+    if (!confirm(t('admin.removePseudoConfirm'))) return
+    setSaving(login)
+    setError(false)
+    try {
+      const response = await fetch(`/api/admin/profiles/${encodeURIComponent(login)}`, { method: 'DELETE' })
+      if (!response.ok) return setError(true)
+      setAccounts(current => current.map(account => account.login === login ? { ...account, pseudo: null } : account))
+    } catch {
+      setError(true)
     } finally {
       setSaving(null)
     }
@@ -66,6 +88,7 @@ export function AdminPage({ onBack }) {
   return (
     <Screen>
       <TopBar onBack={onBack} title={t('admin.title')} bordered />
+      {error && <p role="alert" className="px-5 pt-4 text-sm text-bad">{t('friends.error.generic')}</p>}
       <div className="px-5 pt-6">
         <dl className="grid grid-cols-3 gap-2 text-center">
           {[[t('admin.accounts'), accounts.length], [t('admin.practicedOnce'), practiced], [t('admin.activeWeek'), activeWeek]].map(([label, value]) => (
@@ -81,6 +104,12 @@ export function AdminPage({ onBack }) {
         {sorted.map(account => (
           <li key={account.login} className="py-5">
             <p className="break-all text-[15px] font-medium text-fg">{account.login}</p>
+            {account.pseudo && (
+              <p className="mt-1 flex items-center gap-3 text-sm text-fg-2">
+                <span className="min-w-0 flex-1 truncate">{t('admin.pseudo', { name: account.pseudo })}</span>
+                <button type="button" disabled={saving === account.login} onClick={() => removePseudo(account.login)} className="shrink-0 text-sm font-medium text-bad">{t('admin.removePseudo')}</button>
+              </p>
+            )}
             <Usage stats={account.stats} createdAt={account.createdAt} />
             <div className="mt-3 flex items-center gap-3">
               <select

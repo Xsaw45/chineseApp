@@ -30,7 +30,7 @@ export function splitContent() {
     client[name] = []
     plus[name] = []
     for (const item of items) {
-      if (freeIds[name].has(item.id)) {
+      if (freeIds[name].has(item.id) || (name === 'grammar' && item.level === 1)) {
         client[name].push(item)
       } else {
         client[name].push({ ...summaries[name](item), plus: true, locked: true })

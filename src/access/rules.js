@@ -1,10 +1,12 @@
 import { charsForLevel } from '../data/hanzi.js'
 import { BEGINNER_SESSIONS } from '../data/beginnerPath.js'
+import { FREE_PATH_CHARS } from '../data/path.js'
 
 const FREE_HANZI_COUNT = 10
 export const FREE_HANZI = new Set([
   ...charsForLevel(1).slice(0, FREE_HANZI_COUNT).map(ch => ch.c),
   ...BEGINNER_SESSIONS.flatMap(session => [...session.chars]),
+  ...FREE_PATH_CHARS,
 ])
 const PLUS_MODULES = new Set(['classifiers', 'radicals'])
 

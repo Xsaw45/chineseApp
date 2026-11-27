@@ -1,4 +1,4 @@
-import { ChevronRight, Gift, Settings } from 'lucide-react'
+import { ChevronRight, Gift, Settings, Trophy, Users } from 'lucide-react'
 import { CLASSIFIERS } from '../data/classifiers.js'
 import { PINYIN_LESSONS } from '../data/pinyinLessons.js'
 import { GRAMMAR_POINTS } from '../data/grammar.js'
@@ -11,6 +11,7 @@ import { getPointProgress } from '../utils/grammarQuiz.js'
 import { getCharProgress } from '../utils/hanziQuiz.js'
 import { getReadingProgress } from '../utils/readingQuiz.js'
 import { isLessonPassed } from '../utils/lessonProgress.js'
+import { earnedCount, TROPHIES } from '../utils/trophies.js'
 import { useLang } from '../i18n/useLang.js'
 import { TodayCard } from './TodayPage.jsx'
 import { PlacementInvite } from './PlacementInvite.jsx'
@@ -65,8 +66,36 @@ function ReferralCard({ onOpen }) {
   )
 }
 
+function SocialCards({ progressMap, social, onOpenFriends, onOpenTrophies }) {
+  const { t } = useLang()
+  const incoming = social?.incoming?.length || 0
+  const xp = social?.leaderboard?.find(row => row.me)?.xp ?? 0
+  const tile = 'flex min-w-0 items-center gap-3 rounded-2xl border border-line bg-card p-4 text-left transition-colors duration-150 hover:bg-raised'
+  return (
+    <div className="mt-3 grid grid-cols-2 gap-3">
+      <button type="button" onClick={onOpenFriends} className={tile}>
+        <span className="relative flex size-10 shrink-0 items-center justify-center rounded-xl bg-raised text-fg">
+          <Users size={20} strokeWidth={1.75} aria-hidden="true" />
+          {incoming > 0 && <span className="absolute -top-1.5 -right-1.5 flex size-5 items-center justify-center rounded-full bg-accent text-xs text-white">{incoming}</span>}
+        </span>
+        <span className="min-w-0">
+          <span className="block text-base font-medium text-fg">{t('friends.title')}</span>
+          <span className="block truncate text-sm tabular-nums text-fg-2">{incoming ? t('friends.cardRequests', { n: incoming }) : t('friends.cardXp', { n: xp })}</span>
+        </span>
+      </button>
+      <button type="button" onClick={onOpenTrophies} className={tile}>
+        <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-raised text-fg"><Trophy size={20} strokeWidth={1.75} aria-hidden="true" /></span>
+        <span className="min-w-0">
+          <span className="block text-base font-medium text-fg">{t('trophies.title')}</span>
+          <span className="block text-sm tabular-nums text-fg-2">{earnedCount(progressMap)} / {TROPHIES.length}</span>
+        </span>
+      </button>
+    </div>
+  )
+}
+
 /** showPlacement : nouvel utilisateur, invité au test de niveau. Un module verrouillé ouvre Yidiano+ (App.jsx). */
-export function ModulesHome({ hasPlus, accessibleLevels, sampleWords, profile, levelStats, progressMap, showPlacement, onStartPlacement, onOpenToday, onOpenPinyin, onOpenVocabulary, onOpenCharacters, onOpenGrammar, onOpenReading, onOpenClassifiers, onOpenSettings, onOpenReferral }) {
+export function ModulesHome({ hasPlus, accessibleLevels, sampleWords, profile, levelStats, progressMap, social, showPlacement, onStartPlacement, onOpenToday, onOpenPinyin, onOpenVocabulary, onOpenCharacters, onOpenGrammar, onOpenReading, onOpenClassifiers, onOpenSettings, onOpenReferral, onOpenFriends, onOpenTrophies }) {
   const { t } = useLang()
   const locked = module => !canOpenModule(module, hasPlus)
   const availableLevels = (levelStats || []).filter(stat => canUseVocabLevel(stat.level, hasPlus))
@@ -107,6 +136,7 @@ export function ModulesHome({ hasPlus, accessibleLevels, sampleWords, profile, l
 
         <TodayCard hasPlus={hasPlus} accessibleLevels={accessibleLevels} sampleWords={sampleWords} profile={profile} progressMap={progressMap} onOpen={onOpenToday} />
         <ReferralCard onOpen={onOpenReferral} />
+        <SocialCards progressMap={progressMap} social={social} onOpenFriends={onOpenFriends} onOpenTrophies={onOpenTrophies} />
         {showPlacement && <PlacementInvite onStart={onStartPlacement} className="mt-3" />}
 
         <div className="mt-6 flex flex-col gap-3">

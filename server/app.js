@@ -6,6 +6,7 @@ import { accountUser, ROLES } from './access.js'
 import { cancelSubscription, portalUrl, REFERRAL_TRIAL_DAYS, subscriptionAccess, TRIAL_DAYS, verifySignature } from './paddle.js'
 import { isReferee, MAX_MONTHS_PER_YEAR, newReferralCode, REF_CODE, REF_COOKIE, REF_TTL, rewardReferrer } from './referral.js'
 import { splitContent } from '../content/split.js'
+import { socialRoutes } from './social.js'
 
 const APPS = ['zh']
 
@@ -129,6 +130,8 @@ export function buildApp({ dbPath, publicDir, publicUrl, mailer, allowedEmails =
       return { link: `${publicUrl}/?ref=${code}`, ...stats, maxMonthsPerYear: MAX_MONTHS_PER_YEAR }
     })
 
+    api.register(socialRoutes({ db, publicUrl }), { prefix: '/social' })
+
     api.get('/content', async (request, reply) => {
       if (!request.user.access.plus) return reply.code(403).send({ error: 'plus_required' })
       reply.header('cache-control', 'private, no-store')
@@ -182,11 +185,21 @@ export function buildApp({ dbPath, publicDir, publicUrl, mailer, allowedEmails =
       const now = Date.now()
       const weekStart = new Date(now - 6 * 24 * 3600_000).toLocaleDateString('sv-SE', { timeZone: 'Europe/Paris' })
       const usage = db.accounts.usage(weekStart)
+      const names = db.social.names()
       return db.accounts.list().map(account => ({
         ...accountUser(account, now),
         createdAt: account.created_at,
+        pseudo: names.get(account.email) ?? null,
         stats: usage.get(account.email) || null,
       }))
+    })
+
+    api.delete('/admin/profiles/:email', {
+      schema: { params: { type: 'object', required: ['email'], properties: { email: { type: 'string', minLength: 3, maxLength: 254 } } } },
+    }, async (request, reply) => {
+      if (request.user.role !== 'admin') return reply.code(403).send({ error: 'admin_required' })
+      db.social.deleteProfile(normalizeEmail(request.params.email))
+      return { ok: true }
     })
 
     api.patch('/admin/accounts/:email', {

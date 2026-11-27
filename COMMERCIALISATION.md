@@ -37,12 +37,12 @@ l'essai ou de l'abonnement ; seul l'accès se referme. Règles dans `src/access/
 | --- | --- | --- |
 | Pinyin et tons | Les 7 leçons et le tableau des sons | Identique |
 | Vocabulaire | HSK 1 (502 mots), sans quota ; sélections de 15 mots par séance de découverte | HSK 1 à 9 |
-| Caractères | Les 25 du parcours débutant et les 10 déjà accessibles | HSK 1 à 9 |
+| Caractères | Ceux des séances débutantes, du parcours guidé et les 10 déjà accessibles | HSK 1 à 9 |
 | Clés | Verrouillé | Toutes |
-| Grammaire | 是, 吗 et 有 / 没有 | HSK 1 à 4 |
+| Grammaire | Les 16 points HSK 1 | HSK 1 à 4 |
 | Lecture | *Se présenter*, *Au restaurant*, *Acheter un vêtement*, *À l'hôtel* et *Un entretien d'embauche* | Tous les textes |
 | Classificateurs | Verrouillé | Tous les groupes |
-| Aujourd'hui | Révisions sur les contenus gratuits et reprise du parcours | Tous les contenus accessibles |
+| Aujourd'hui | Révisions sur les contenus gratuits, reprise des séances et parcours guidé débutant | Tous les contenus accessibles |
 | Synchronisation et hors ligne | Inclus | Inclus |
 
 - L'essai Yidiano+ dure 15 jours et demande une carte : il démarre l'abonnement Paddle (statut `trialing`), rien

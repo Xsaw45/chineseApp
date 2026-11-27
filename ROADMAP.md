@@ -20,6 +20,9 @@ Objectif à terme : vendre l'application de chinois seule (sans l'italien), en f
   élément (3, 14, 57… jours, un an au plus) ; une erreur raccourcit l'intervalle sans tout effacer, 4 oublis renvoient
   en apprentissage ; 20 mots en cours au plus, les nouveaux arrivent quand on en maîtrise ; anciennes progressions
   reprises sans perte.
+- Amis, classement et trophées : demandes réciproques, profil pseudonyme, blocage, XP et classement hebdomadaire ;
+  continuation guidée débutante dans Aujourd'hui après les cinq séances. Les sélections par niveau et contenus gratuits
+  existants restent accessibles. Les XP sont calculés par l'appareil et plafonnés pour le classement.
 
 ## Priorités
 

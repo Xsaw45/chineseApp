@@ -8,12 +8,15 @@ import { PLACEMENT_KEY } from './utils/levelTest.js'
 import { today } from './utils/spacedrep.js'
 import { SAMPLE_LEVELS, sampleDoneKey, sampleKey, sampleLevel, startedSampleWords } from './data/freePreviews.js'
 import { READINGS } from './data/reading.js'
+import { getWordById } from './data/index.js'
 import { VocabLevelTest } from './components/VocabLevelTest.jsx'
 import { LanguageChoice } from './components/LanguageChoice.jsx'
 import { useProgress } from './hooks/useProgress.js'
 import { useLevels } from './hooks/useLevels.js'
 import { usePracticeTime } from './hooks/usePracticeTime.js'
 import { useQuiz, QUIZ_STATES } from './hooks/useQuiz.js'
+import { useSocial } from './hooks/useSocial.js'
+import { useTrophies } from './hooks/useTrophies.js'
 import { LangContext, SETTINGS_KEY, makeLang } from './i18n/useLang.js'
 import { defaultLang, translate } from './i18n/text.js'
 import { Dashboard } from './components/Dashboard.jsx'
@@ -35,6 +38,14 @@ import { SettingsPage } from './components/SettingsPage.jsx'
 import { PlusPage } from './components/PlusPage.jsx'
 import { AdminPage } from './components/AdminPage.jsx'
 import { ReferralPage } from './components/ReferralPage.jsx'
+import { FriendsPage } from './components/FriendsPage.jsx'
+import { TrophiesPage, TrophyToast } from './components/TrophiesPage.jsx'
+
+const FRIEND_CODE = /^[A-HJ-NP-Z2-9]{8}$/
+const linkedFriendCode = () => {
+  const code = new URLSearchParams(location.search).get('ref')
+  return FRIEND_CODE.test(code || '') ? code : null
+}
 
 const BEGINNER_STEP_PREFIX = 'beginner_step_'
 const DEMO_COMPLETED = 'yidiano.demo.completed'
@@ -57,7 +68,15 @@ function beginnerSteps(progressMap) {
 
 export default function App() {
   // Navigation des modules, du parcours guidé et des réglages.
-  const [screen, setScreen] = useState('home')
+  const [friendCode] = useState(linkedFriendCode)
+  const [screen, setScreen] = useState(friendCode ? 'friends' : 'home')
+  useEffect(() => {
+    if (friendCode) {
+      const url = new URL(location.href)
+      url.searchParams.delete('ref')
+      history.replaceState(null, '', `${url.pathname}${url.search}${url.hash}`)
+    }
+  }, [friendCode])
   const [plusBack, setPlusBack] = useState('settings')
   const [plusFrom, setPlusFrom] = useState(null)
   const openPlus = useCallback((from, offer) => {
@@ -83,6 +102,8 @@ export default function App() {
     return [...unlockedLevels, selectedLevel].sort((a, b) => a - b)
   }, [hasPlus, unlockedLevels, selectedLevel])
   const sampleWords = useMemo(() => startedSampleWords(progressMap), [progressMap])
+  const { social, refresh: refreshSocial } = useSocial()
+  const { earned, dismiss: dismissTrophies } = useTrophies({ progressMap, latestMap, levelStats, social, save: saveUpdates })
   const profile = progressMap?.get(SETTINGS_KEY)?.learnerProfile
   const completedBeginner = beginnerSteps(progressMap)
   // L'activité est sauvegardée même sans consentement ; seule la mesure est facultative.
@@ -128,6 +149,7 @@ export default function App() {
     lastAnswer,
     results,
     startQuiz,
+    startWords,
     submitAnswer,
     nextQuestion,
     resetQuiz,
@@ -161,12 +183,18 @@ export default function App() {
     if (!hasPlus && consent() === 'granted') capture('learning_offer_viewed', { profile, offer: offerId })
   }, [hasPlus, profile, offerId])
 
+  const [guidedWords, setGuidedWords] = useState(null)
   function startVocab() {
+    setGuidedWords(null)
     startQuiz(accessibleLevels, sampleWords)
+  }
+  function startGuidedWords(ids) {
+    setGuidedWords(ids)
+    startWords(ids.map(getWordById).filter(Boolean).filter(word => !latestMap()?.get(word.id)?.known))
   }
 
   // Temps de pratique : dans un module ou un test, pas sur l'accueil ni dans les paramètres.
-  const practicing = !loading && !accessLoading && (state !== QUIZ_STATES.IDLE || !['home', 'settings', 'plus', 'admin'].includes(screen))
+  const practicing = !loading && !accessLoading && (state !== QUIZ_STATES.IDLE || !['home', 'settings', 'plus', 'admin', 'friends', 'trophies'].includes(screen))
   usePracticeTime(practicing, seconds => saveUpdates([addPracticeTime(latestMap(), seconds)]))
 
   const home = () => setScreen('home')
@@ -191,10 +219,10 @@ export default function App() {
         results={results}
         onRestart={() => {
           resetQuiz()
-          setTimeout(startVocab, 0)
+          setTimeout(() => guidedWords ? startGuidedWords(guidedWords) : startVocab(), 0)
         }}
         onHome={() => {
-          if (screen === 'today') applyUpdates([markStepDone(progressMap, 'vocab')])
+          if (screen === 'today' && !guidedWords) applyUpdates([markStepDone(progressMap, 'vocab')])
           resetQuiz()
         }}
         homeLabel={translate(lang, screen === 'today' ? 'today.back' : 'vocab.backToVocab')}
@@ -282,8 +310,12 @@ export default function App() {
     content = <ReferralPage onBack={() => setScreen(referralBack)} />
   } else if (view === 'admin') {
     content = <AdminPage onBack={() => setScreen('settings')} />
+  } else if (view === 'friends') {
+    content = <FriendsPage social={social} refresh={refreshSocial} initialCode={friendCode} onBack={home} onOpenTrophies={() => setScreen('trophies')} />
+  } else if (view === 'trophies') {
+    content = <TrophiesPage progressMap={progressMap} levelStats={levelStats} social={social} onBack={home} />
   } else if (view === 'today') {
-    content = <TodayPage key={hasPlus} hasPlus={hasPlus} progressMap={progressMap} applyUpdates={applyUpdates} onBack={home} onStartVocab={startVocab} accessibleLevels={accessibleLevels} sampleWords={sampleWords} profile={profile} selectedLevel={selectedLevel} onOpenPath={() => setScreen(profile === 'beginner' || selectedLevel ? 'path' : profile === 'experienced' ? 'level' : 'profile')} />
+    content = <TodayPage key={hasPlus} hasPlus={hasPlus} progressMap={progressMap} applyUpdates={applyUpdates} onBack={home} onStartVocab={startVocab} onStartGuidedWords={startGuidedWords} onUpgrade={() => openPlus('today')} accessibleLevels={accessibleLevels} sampleWords={sampleWords} profile={profile} selectedLevel={selectedLevel} completedBeginner={completedBeginner} onOpenPath={() => setScreen(profile === 'beginner' || selectedLevel ? 'path' : profile === 'experienced' ? 'level' : 'profile')} />
   } else if (view === 'hsk') {
     content = (
       <Dashboard
@@ -305,6 +337,7 @@ export default function App() {
       <ModulesHome
         levelStats={levelStats}
         progressMap={progressMap}
+        social={social}
         showPlacement={newLearner}
         onStartPlacement={() => setLevelTest({ mode: 'placement' })}
         onOpenToday={() => setScreen('today')}
@@ -316,6 +349,8 @@ export default function App() {
         onOpenClassifiers={() => openModule('classifiers')}
         onOpenSettings={() => setScreen('settings')}
         onOpenReferral={() => openReferral('home')}
+        onOpenFriends={() => { refreshSocial(); setScreen('friends') }}
+        onOpenTrophies={() => setScreen('trophies')}
         hasPlus={hasPlus}
         accessibleLevels={accessibleLevels}
         sampleWords={sampleWords}
@@ -328,6 +363,9 @@ export default function App() {
     <LangContext.Provider value={langValue}>
       {content}
       <ConsentBanner />
+      {!loading && !practicing && !levelTest && (
+        <TrophyToast earned={earned} onDismiss={dismissTrophies} onOpen={() => { dismissTrophies(); setScreen('trophies') }} />
+      )}
     </LangContext.Provider>
   )
 }
